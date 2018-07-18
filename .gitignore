@@ -1,2 +1,6 @@
 *.pyc
 models/*
+*.sh
+exp/*
+exp/*/*
+
