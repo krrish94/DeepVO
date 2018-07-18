@@ -1,14 +1,14 @@
 from skimage import io, transform
 from skimage.transform import resize
 from numpy.linalg import inv
-from numpy import matmul
 from pyquaternion import Quaternion
+from liealgebra import rotMat_to_axisAngle
+
 
 import numpy as np
 import os
 import random as rn
 import scipy.misc as smc
-import pandas as pd
 import torch
 
 
@@ -22,11 +22,17 @@ class Dataloader:
 		self.g_KITTImean = 93.70
 		self.b_KITTImean = 92.11
 		
-		self.train_seqs_KITTI = [0,1,2,8,9]
-		self.test_seqs_KITTI = [3,4,5,6,7,10]
+		# 4541, 1101, 4661, 4071, 1591
+		#self.train_seqs_KITTI = [0,1,2,8,9]
+		#self.test_seqs_KITTI = [3,4,5,6,7,10]
+		#self.total_seqs_KITTI =[0,1,2,3,4,5,6,7,8,9,10]
 
-		self.minFrame_KITTI = 5;
-		self.maxFrame_KITTI = 500;
+		self.train_seqs_KITTI = [1]
+		self.test_seqs_KITTI = [1]
+		self.total_seqs_KITTI =[1]
+
+		self.minFrame_KITTI = 2;
+		self.maxFrame_KITTI = 1095;
 
 		# Dimensions to be fed in the input
 		self.width_KITTI = 1280;
@@ -38,22 +44,9 @@ class Dataloader:
 		if dataset == "KITTI":
 			seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 
-		st_frm = rn.randint(1, seqLength-tl+1)
+		st_frm = rn.randint(0, seqLength-tl)
 		end_frm = st_frm + tl - 1;
 		return st_frm, end_frm
-
-	def rotMat_to_axisAngle(self,rot):
-		# qt = Quaternion(matrix=rot)
-		# axis = qt.axis
-		# angle = qt.radians
-		#return axis,angle
-
-		trace = rot[0,0] + rot[1,1] + rot[2,2]
-		trace = np.clip(trace, 0.0, 2.99999)
-		theta = np.arccos((trace - 1.0)/2.0)
-		omega_cross = (theta/(2*np.sin(theta)))*(rot - np.transpose(rot))
-		return [omega_cross[2,1], omega_cross[0,2], omega_cross[1,0]]
-
 
 	def preprocessImg(self,img):
 		# Subtract the mean R,G,B pixels
@@ -63,54 +56,52 @@ class Dataloader:
 	
 		# Resize to the dimensions required 
 		img = np.resize(img,(self.height_KITTI,self.width_KITTI,self.channels_KITTI))
-		
 
-		# Change the channel
-		newImg = np.empty([self.channels_KITTI,self.height_KITTI,self.width_KITTI])
-		newImg[0,:,:] = img[:,:,0]
-		newImg[1,:,:] = img[:,:,1]
-		newImg[2,:,:] = img[:,:,2]
-		
-		return newImg
+		# Torch expects NCWH
+		img = torch.from_numpy(img)
+		img = img.permute(2,0,1)
+
+		return img
 
 
 		
 
 
 	# Get the image pair and their corresponding R and T.
-	def getPairFrameInfo(self,frm1,frm2,seq,dataset):
+	def getPairFrameInfo(self,frame1,frame2,seq,dataset):
 
 		if dataset == "KITTI":
 			# Load the two images : loaded as H x W x 3(R,G,B)
-			img1 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frm1).zfill(6) + ".png")
-			img2 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frm2).zfill(6) + ".png")
+			img1 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frame1).zfill(6) + ".png")
+			img2 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frame2).zfill(6) + ".png")
 			
-			# Preprocess
+			# Preprocess : returned after mean subtraction, resize and NCWH
 			img1 = self.preprocessImg(img1)
 			img2 = self.preprocessImg(img2)
 
-			pair = np.empty([1, 2*self.channels_KITTI, self.height_KITTI, self.width_KITTI, ])
+			pair = torch.empty([1, 2*self.channels_KITTI, self.height_KITTI, self.width_KITTI, ])
 			
-			pair[0] = np.append(img1,img2,axis=0)
-
-			inputTensor = (torch.from_numpy(pair).float()).cuda()
+			pair[0] = torch.cat((img1,img2),0)
+			
+			inputTensor = (pair.float()).cuda()
 
 			# Load the poses. The frames are  0 based indexed.
 			poses = open("/data/milatmp1/sharmasa/"+ dataset + "/dataset/poses/" + str(seq).zfill(2) + ".txt").readlines()
-			pose_frm1 = np.append(np.asarray([(float(i)) for i in poses[frm1].split(' ')]).reshape(3,4),[[0,0,0,1]], axis=0); # 4x4 transformation matrix
-			pose_frm2 = np.append(np.asarray([(float(i)) for i in poses[frm2].split(' ')]).reshape(3,4),[[0,0,0,1]], axis=0); # 4x4 transformation matrix
+			pose_frame1 = np.concatenate( (np.asarray([(float(i)) for i in poses[frame1].split(' ')]).reshape(3,4) , [[0.0,0.0,0.0,1.0]] ), axis=0); # 4x4 transformation matrix
+			pose_frame2 = np.concatenate( (np.asarray([(float(i)) for i in poses[frame2].split(' ')]).reshape(3,4) , [[0.0,0.0,0.0,1.0]] ), axis=0); # 4x4 transformation matrix
 
 			# Make the transformation
-			pose2_wrt1 = matmul(inv(pose_frm1),pose_frm2);
+			pose2_wrt1 = np.dot(inv(pose_frame1),pose_frame2); # Take a point in frame2 to a point in frame 1 ==> point_1 = (pose2_wrt1)*(point_2)
+
 			# Extract R and T, convert it to axis angle form
 			R = pose2_wrt1[0:3,0:3]
-			axis = (torch.from_numpy(np.asarray(self.rotMat_to_axisAngle(R))).view(-1,3)).float().cuda()
+			axisAngle = (torch.from_numpy(np.asarray(rotMat_to_axisAngle(R))).view(-1,3)).float().cuda()
+			
 
 			T = (torch.from_numpy(pose2_wrt1[0:3,3]).view(-1,3)).float().cuda()
-			
-			
-			
 
-			return inputTensor,axis,T
+			axisAngle = torch.from_numpy(np.array([[0,1,0]])).float().cuda()
+			T = torch.from_numpy(np.array([[0.3,0.01,1.5]])).float().cuda()
+			return inputTensor,axisAngle,T
 
 
