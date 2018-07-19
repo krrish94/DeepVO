@@ -1,4 +1,4 @@
-from skimage import io, transform
+zfrom skimage import io, transform
 from skimage.transform import resize
 from numpy.linalg import inv
 from pyquaternion import Quaternion
@@ -21,6 +21,10 @@ class Dataloader:
 		self.r_KITTImean = 88.61
 		self.g_KITTImean = 93.70
 		self.b_KITTImean = 92.11
+		
+		self.r_KITTIstddev = 79.35914872;
+		self.g_KITTIstddev = 80.69872125;
+		self.b_KITTIstddev = 82.34685558;
 		
 		# 4541, 1101, 4661, 4071, 1591
 		#self.train_seqs_KITTI = [0,1,2,8,9]

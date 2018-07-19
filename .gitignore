@@ -3,4 +3,4 @@ models/*
 *.sh
 exp/*
 exp/*/*
-
+*.txt

@@ -9,15 +9,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from liealgebra import rotMat_to_axisAngle
-# x=[]
-
-# for seq in range(11):
-# 	for frm  in range(len(os.listdir("/data/milatmp1/sharmasa/"+ "KITTI" + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))):
-# 		img = smc.imread("/data/milatmp1/sharmasa/"+ "KITTI" + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frm).zfill(6) + ".png")
-# 		x.append(np.mean(img,axis=(0,1)))
-
-
-# print(np.mean(x,axis=0))
 
 
 def checkRotMattoAxisAngle():
@@ -80,7 +71,37 @@ def checkRotMattoAxisAngle():
 	plt.xlabel(" num samples ")
 	plt.ylim(-0.001,0.001)
 	fig.savefig("/u/sharmasa/Documents/DeepVO/matlab/axis-angleTest")
-	
 
-checkRotMattoAxisAngle()
+
+def computeMeanandStddevValue():
+	print("Computing mean ==> ")
+	mean=[]
+	for seq in range(11):
+		print(seq)
+		for frm  in range(len(os.listdir("/data/milatmp1/sharmasa/"+ "KITTI" + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))):
+			img = smc.imread("/data/milatmp1/sharmasa/"+ "KITTI" + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frm).zfill(6) + ".png")
+			mean.append(np.mean(img,axis=(0,1)))
+
+	mean = np.mean(mean,axis=0)
+	print("mean is (R, G, B) : ",  mean)
+	print("Computing std dev ==> ")
+	stddev=[];
+	for seq in range(11):
+		print(seq)
+		for frm  in range(len(os.listdir("/data/milatmp1/sharmasa/"+ "KITTI" + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))):
+			img = smc.imread("/data/milatmp1/sharmasa/"+ "KITTI" + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frm).zfill(6) + ".png")
+			r = img[:,:,0] - mean[0]
+			g = img[:,:,1] - mean[1]
+			b = img[:,:,2] - mean[2]
+			
+			r = np.square(r)
+			g = np.square(g)
+			b = np.square(b)
+			stddev.append([np.mean(r),np.mean(g),np.mean(b)])
+
+	stddev = np.sqrt(np.mean(stddev,axis=0));
+	print("Stddev is (R,G,B) : " , stddev)
+
+
+#checkRotMattoAxisAngle()
 computeMeanandStddevValue()
