@@ -158,8 +158,10 @@ def validate(epoch,tag="valid"):
 		validSeqs = dataloader.test_seqs_KITTI
 
 	# For the entire validation set
-	avgRotLoss = 0.0
-	avgTrLoss = 0.0
+	avgRotLoss = []
+	avgTrLoss = []
+	# avgRotLoss = 0.0
+	# avgTrLoss = 0.0
 
 	
 	for idx, seq in enumerate(validSeqs):
@@ -168,11 +170,14 @@ def validate(epoch,tag="valid"):
 		seq_traj = np.zeros([seqLength-1,6])
 
 		# Loss for each sequence
-		avgR_Loss_seq = 0.0;
-		avgT_Loss_seq = 0.0;
+		# avgR_Loss_seq = 0.0;
+		# avgT_Loss_seq = 0.0;
+		avgR_Loss_seq = []
+		avgT_Loss_seq = []
 		
 		
 		flag = 0;
+
 		for frame1 in range(seqLength-1):
 			#print(frame1)
 			inp,axis,t = dataloader.getPairFrameInfo(frame1,frame1+1,seq,cmd.dataset)
@@ -183,24 +188,46 @@ def validate(epoch,tag="valid"):
 
 			loss_r = criterion(output_r,axis)
 			loss_t = criterion(output_t,t)
-			avgR_Loss_seq = (avgR_Loss_seq*frame1 + loss_r.item())/(frame1+1)
-			avgT_Loss_seq = (avgT_Loss_seq*frame1 + loss_t.item())/(frame1+1)
+			# avgR_Loss_seq = (avgR_Loss_seq*frame1 + loss_r.item())/(frame1+1)
+			# avgT_Loss_seq = (avgT_Loss_seq*frame1 + loss_t.item())/(frame1+1)
+			avgR_Loss_seq.append(loss_r.item())
+			avgT_Loss_seq.append(loss_t.item())
+
 			
 			flag = 1
 
 
-		avgRotLoss = (avgRotLoss*idx + avgR_Loss_seq)/(idx+1)
-		avgTrLoss = (avgTrLoss*idx + avgT_Loss_seq)/(idx+1)
-		
-		
 		# Plot the trajectory of that sequence
 		# if tag == "valid":
 		# 	plotSequences(seq,seqLength,seq_traj,cmd.dataset,cmd)
 
 
-		# Save the trajectory to text file
+		# Save the trajectory to text file of that sequence
 		filepath = "/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2) + "/traj_" + str(epoch) +".txt"
 		np.savetxt(filepath, seq_traj, newline="\n")
+
+		# Save rotation and translation loss of that sequence
+		fig_r,ax_r = plt.subplots(1)
+		ax_r.plot(avgR_Loss_seq,'r')
+		plt.ylabel("Rotation Loss")
+		plt.xlabel("Per pair of frames")
+		fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/loss/" + "seq_ " + str(seq) + "_rotLoss_valid_epoch_" + str(epoch))
+
+		fig_t,ax_t = plt.subplots(1)
+		ax_t.plot(avgT_Loss_seq,'g')
+		plt.ylabel("Translation Loss")
+		plt.xlabel("Per pair of frames")
+		fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/loss/" + "seq_ " + str(seq) + "_trans_Loss_valid_epoch_" + str(epoch))
+
+		# avgRotLoss = (avgRotLoss*idx + avgR_Loss_seq)/(idx+1)
+		# avgTrLoss = (avgTrLoss*idx + avgT_Loss_seq)/(idx+1)
+
+		avgRotLoss.append(np.mean(avgR_Loss_seq))
+		avgTrLoss.append(np.mean(avgT_Loss_seq))
+
+
+
+
 
 
 	# Return average rotation and translation loss for all the validation sequences.
@@ -282,15 +309,25 @@ for epoch in range(cmd.nepochs):
 	r_tr.append(r_trLoss)
 	t_tr.append(t_trLoss)
 
-	# Average loss over entire validation set
+	# Average loss over entire validation set, a list of loss for all sequences
 	r_valLoss, t_valLoss = validate(epoch,"valid")
-	r_val.append(r_valLoss)
-	t_val.append(t_valLoss)
+	r_val.append(np.mean(r_valLoss))
+	t_val.append(np.mean(t_valLoss))
 
-	#Take snapshot of the model
-	if epoch  % cmd.snapshot == 0:
-		torch.save(deepVO.state_dict(),"/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/models/" + str(epoch) + "_.pth")
+	# After all the epochs plot the translation and rotation loss  w.r.t. epochs
+	fig_r,ax_r = plt.subplots(1)
+	ax_r.plot(r_valLoss)
+	plt.ylabel("Rotation Loss : validation")
+	plt.xlabel("Per sequence")
+	fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_rotLoss" + str(epoch))
+	
+	fig_t,ax_t = plt.subplots(1)
+	ax_t.plot(t_valLoss)
+	plt.ylabel("Translation Loss : validation")
+	plt.xlabel("Per sequence")
+	fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_trainLoss" + str(epoch))
 
+	
 
 
 
@@ -309,6 +346,6 @@ ax_t.plot(t_val,label="valid")
 ax_t.legend()
 plt.ylabel("Translation Loss")
 plt.xlabel("Per epoch")
-fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "tranLoss")
+fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "trainLoss")
 print("Done !!")
 
