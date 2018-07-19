@@ -54,9 +54,9 @@ class Dataloader:
 
 	def preprocessImg(self,img):
 		# Subtract the mean R,G,B pixels
-		img[:,:,0] = img[:,:,0] - self.r_KITTImean 
-		img[:,:,1] = img[:,:,1] - self.g_KITTImean 
-		img[:,:,2] = img[:,:,2] - self.b_KITTImean
+		img[:,:,0] = (img[:,:,0] - self.r_KITTImean)/(self.r_KITTIstddev)
+		img[:,:,1] = (img[:,:,1] - self.g_KITTImean)/(self.g_KITTIstddev)
+		img[:,:,2] = (img[:,:,2] - self.b_KITTImean)/(self.b_KITTIstddev)
 	
 		# Resize to the dimensions required 
 		img = np.resize(img,(self.height_KITTI,self.width_KITTI,self.channels_KITTI))
