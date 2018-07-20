@@ -8,7 +8,7 @@ parser.add_argument("-modelType", help="Type of the model to be loaded : three o
 parser.add_argument("-initType", help = " weight initialization for the linear layers :: three options : 1. no change | 2. xavier" , default ="noe")
 
 ################ Dataset ######################################
-parser.add_argument("-dataset",help="dataset to be used for traingin the network", default="KITTI")
+parser.add_argument("-dataset",help="dataset to be used for training the network", default="KITTI")
 
 ################### Hyperparameters ###########################
 parser.add_argument("-lr", help="learning rate",type = float, default = 1e-4)
@@ -29,6 +29,7 @@ parser.add_argument("-scf", help =" scaling factor to reduce the translation los
 ################### Model and experiment #####################
 parser.add_argument("-snapshot", help =" when to take model snapshots", type =int,default = 5)
 parser.add_argument("-expID", help =" experiment ID",default =" temporary testings")
+parser.add_argument("-cachedir", help = "directory to store log files and models and other experiment data", default = "cache")
 
 
 

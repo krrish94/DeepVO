@@ -4,3 +4,4 @@ models/*
 exp/*
 exp/*/*
 *.txt
+cache/*

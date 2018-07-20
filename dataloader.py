@@ -1,7 +1,7 @@
-zfrom skimage import io, transform
+from skimage import io, transform
 from skimage.transform import resize
 from numpy.linalg import inv
-from pyquaternion import Quaternion
+# from pyquaternion import Quaternion
 from liealgebra import rotMat_to_axisAngle
 
 
@@ -25,6 +25,13 @@ class Dataloader:
 		self.r_KITTIstddev = 79.35914872;
 		self.g_KITTIstddev = 80.69872125;
 		self.b_KITTIstddev = 82.34685558;
+
+		self.r_KITTImean = 0.0
+		self.g_KITTImean = 0.0
+		self.b_KITTImean = 0.0
+		self.r_KITTIstddev = 1.0
+		self.g_KITTIstddev = 1.0
+		self.b_KITTIstddev = 1.0
 		
 		# 4541, 1101, 4661, 4071, 1591
 		#self.train_seqs_KITTI = [0,1,2,8,9]
@@ -43,8 +50,9 @@ class Dataloader:
 		self.height_KITTI = 384;
 		self.channels_KITTI = 3;
 
+
 	# Get start and end of a subsequence 
-	def getSubsequence(self,seq,tl,dataset):
+	def getSubsequence(self, seq, tl, dataset):
 		if dataset == "KITTI":
 			seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 
@@ -72,7 +80,7 @@ class Dataloader:
 
 
 	# Get the image pair and their corresponding R and T.
-	def getPairFrameInfo(self,frame1,frame2,seq,dataset):
+	def getPairFrameInfo(self, frame1, frame2, seq, dataset):
 
 		if dataset == "KITTI":
 			# Load the two images : loaded as H x W x 3(R,G,B)
