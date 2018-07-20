@@ -40,18 +40,18 @@ class Net_DeepVO_WOB(nn.Module):
 	def init_weights(self):
 		for m in self.modules():
 			if isinstance(m, nn.Linear):
-				print('#')
+				print('# Linear')
 				nn.init.xavier_normal_(m.weight.data)
 				if m.bias is not None:
 					m.bias.data.zero_()
 			if isinstance(m, nn.Conv2d):
-				print('$')
+				print('$ Conv2d')
 				n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
 				m.weight.data.normal_(0, math.sqrt(2. / n))
 				if m.bias is not None:
 					m.bias.data.zero_()
 			if isinstance(m, nn.LSTMCell):
-				print('%')
+				print('% LSTMCell')
 				for name, param in m.named_parameters():
 					if 'weight' in name:
 						nn.init.xavier_normal_(param)

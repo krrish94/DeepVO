@@ -26,13 +26,6 @@ class Dataloader:
 		self.g_KITTIstddev = 80.69872125;
 		self.b_KITTIstddev = 82.34685558;
 
-		self.r_KITTImean = 0.0
-		self.g_KITTImean = 0.0
-		self.b_KITTImean = 0.0
-		self.r_KITTIstddev = 1.0
-		self.g_KITTIstddev = 1.0
-		self.b_KITTIstddev = 1.0
-		
 		# 4541, 1101, 4661, 4071, 1591
 		#self.train_seqs_KITTI = [0,1,2,8,9]
 		#self.test_seqs_KITTI = [3,4,5,6,7,10]
@@ -42,8 +35,11 @@ class Dataloader:
 		self.test_seqs_KITTI = [1]
 		self.total_seqs_KITTI =[1]
 
-		self.minFrame_KITTI = 2;
-		self.maxFrame_KITTI = 1095;
+		# self.minFrame_KITTI = 2;
+		# self.maxFrame_KITTI = 1095;
+
+		self.minFrame_KITTI = 5;
+		self.maxFrame_KITTI = 30;
 
 		# Dimensions to be fed in the input
 		self.width_KITTI = 1280;

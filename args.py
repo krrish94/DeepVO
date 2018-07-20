@@ -28,8 +28,8 @@ parser.add_argument("-scf", help =" scaling factor to reduce the translation los
 
 ################### Model and experiment #####################
 parser.add_argument("-snapshot", help =" when to take model snapshots", type =int,default = 5)
-parser.add_argument("-expID", help =" experiment ID",default =" temporary testings")
-parser.add_argument("-cachedir", help = "directory to store log files and models and other experiment data", default = "cache")
+parser.add_argument("-expID", help =" experiment ID", default =" tmp")
+parser.add_argument("-cachedir", help = "(Relative path to) directory in which to store logs, models, plots, etc.", default = "cache")
 
 
 

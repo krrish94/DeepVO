@@ -39,12 +39,20 @@ if not os.path.exists(os.path.join(basedir, cmd.cachedir, cmd.dataset)):
 expDir = os.path.join(basedir, cmd.cachedir, cmd.dataset, cmd.expID)
 if not os.path.exists(expDir):
 	os.makedirs(expDir)
+	print('Created dir: ', expDir)
+if not os.path.exists(os.path.join(expDir, 'models')):
 	os.makedirs(os.path.join(expDir, 'models'))
+	print('Created dir: ', os.path.join(expDir, 'models'))
+if not os.path.exists(os.path.join(expDir, 'plots', 'traj')):
 	os.makedirs(os.path.join(expDir, 'plots', 'traj'))
+	print('Created dir: ', os.path.join(expDir, 'plots', 'traj'))
+if not os.path.exists(os.path.join(expDir, 'plots', 'loss')):
 	os.makedirs(os.path.join(expDir, 'plots', 'loss'))
-
-	for seq in dataloader.total_seqs_KITTI:
+	print('Created dir: ', os.path.join(expDir, 'plots', 'loss'))
+for seq in dataloader.total_seqs_KITTI:
+	if not os.path.exists(os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2))):
 		os.makedirs(os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2)))
+		print('Created dir: ', os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2)))
 		
 # if not os.path.exists("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID):
 #     os.makedirs("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID)
@@ -69,7 +77,7 @@ cmdFile.close()
 # cmdFile.close()
 
 ########################################################################
-						### Train and validation Function ###
+### Train and validation Functions ###
 ########################################################################
 def train(epoch):
 
@@ -77,8 +85,7 @@ def train(epoch):
 	deepVO.train()
 	
 	trainSeqs = dataloader.train_seqs_KITTI
-	# trajLength = list(range(dataloader.minFrame_KITTI,dataloader.maxFrame_KITTI, rn.randint(5,10)))
-	trajLength = [20]	###
+	trajLength = list(range(dataloader.minFrame_KITTI,dataloader.maxFrame_KITTI, rn.randint(5,10)))
 	
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
@@ -97,8 +104,7 @@ def train(epoch):
 	for seq in trainSeqs:
 		for tl in trajLength:
 			# get a random subsequence from 'seq' of length 'fl' : starting index, ending index
-			stFrm, enFrm = dataloader.getSubsequence(seq,tl,cmd.dataset)
-			stFrm, enFrm = 90, 109		###
+			stFrm, enFrm = dataloader.getSubsequence(seq, tl, cmd.dataset)
 			# itterate over this subsequence and get the frame data.
 			flag = 0
 			print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
@@ -113,16 +119,22 @@ def train(epoch):
 				
 				loss_r = criterion(output_r,axis)
 				loss_t = cmd.scf * criterion(output_t,t)
-
-				# Net loss : rotation + translation
-				loss = loss_r + cmd.scf*loss_t;
-				# loss = V(loss,requires_grad=True)
-				loss_r.backward(retain_graph = True)
+				
+				# Soln 1: This works ###
+				# loss_r.backward(retain_graph = True)
+				# if frm1 != enFrm-1:
+				# 	loss_t.backward(retain_graph = True)
+				# else:
+				# 	loss_t.backward(retain_graph = False)
+				
+				# Soln 2:
+				loss = sum([loss_r, loss_t])
 				if frm1 != enFrm-1:
-					loss_t.backward(retain_graph = True)
+					loss.backward(retain_graph = True)
 				else:
-					loss_t.backward(retain_graph = False)
+					loss.backward(retain_graph = False)
 
+				optimizer.step()
 
 				# There are two ways to save the hidden states for temporal use :
 				# WAY 1. use retain graph = true while doing backward pass , for all the passes except the last one where the (sub) sequence ends. 
@@ -136,8 +148,6 @@ def train(epoch):
 				# 	loss.backward(retain_graph=True)
 				# else:
 				# 	loss.backward(retain_graph=False)
-				optimizer.step()
-
 
 
 				# Save rotation and translation loss values
@@ -151,6 +161,7 @@ def train(epoch):
 				if num_itt == cmd.iterations:
 					avgRotLoss.append(itt_R_Loss)
 					avgTrLoss.append(itt_T_Loss)
+					avgTotalLoss.append(itt_tot_Loss)
 					num_itt = 0
 					itt_T_Loss = 0.0
 					itt_R_Loss = 0.0
@@ -160,33 +171,37 @@ def train(epoch):
 			print('Total Loss: ', str(itt_tot_Loss))
 			
 					
-	# # Save plot for loss					
-	# fig_r,ax_r = plt.subplots(1)
-	# ax_r.plot(avgRotLoss,'r')
-	# plt.ylabel("Rotation Loss")
-	# plt.xlabel("Per " + str(cmd.iterations) + " iterations in one epoch")
-	# fig_r.savefig(os.path.join(expDir, 'plots', 'loss', 'rotLoss_epoch_' + str(epoch)))
-	# # fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/loss/" + "rotLoss_epoch_" + str(epoch))
+	# Save plot for loss					
+	fig_r,ax_r = plt.subplots(1)
+	ax_r.plot(avgRotLoss,'r')
+	plt.ylabel("Rotation Loss")
+	plt.xlabel("Per " + str(cmd.iterations) + " iterations in one epoch")
+	fig_r.savefig(os.path.join(expDir, 'plots', 'loss', 'rotLoss_epoch_' + str(epoch)))
 	
-	# fig_t,ax_t = plt.subplots(1)
-	# ax_t.plot(avgTrLoss,'g')
-	# plt.ylabel("Translation Loss")
-	# plt.xlabel("Per " + str(cmd.iterations) + " iterations in one epoch")
-	# fig_t.savefig(os.path.join(expDir, 'plots', 'loss', 'transLoss_epoch_' + str(epoch)))
-	# # fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/loss/" + "transLoss_epoch_" + str(epoch))
+	fig_t,ax_t = plt.subplots(1)
+	ax_t.plot(avgTrLoss,'g')
+	plt.ylabel("Translation Loss")
+	plt.xlabel("Per " + str(cmd.iterations) + " iterations in one epoch")
+	fig_t.savefig(os.path.join(expDir, 'plots', 'loss', 'transLoss_epoch_' + str(epoch)))
 
-	if avgRotLoss == [] and avgTrLoss == []:
-		return 0.0, 0.0
-	return sum(avgRotLoss)/float(len(avgRotLoss)), sum(avgTrLoss)/float(len(avgTrLoss))
+	fig_tot, ax_tot = plt.subplots(1)
+	ax_tot.plot(avgTotalLoss, 'b')
+	plt.ylabel('Total Loss')
+	plt.xlabel('Per' + str(cmd.iterations) + ' iterations in one epoch')
+	fig_tot.savefig(os.path.join(expDir, 'plots', 'loss', 'totalLoss_epoch_' + str(epoch)))
+
+	if avgRotLoss == [] and avgTrLoss == [] and avgTotalLoss == []:
+		return 0.0, 0.0, 0.0
+	return sum(avgRotLoss)/float(len(avgRotLoss)), sum(avgTrLoss)/float(len(avgTrLoss)), sum(avgTotalLoss)/float(len(avgTotalLoss))
 
 
-def validate(epoch,tag="valid"):
+def validate(epoch, tag = 'valid'):
 
 	# Switching to evaluation mode
 	deepVO.eval()
 
 	# In validation will predicit the loss between every two successive frames in all the training / validation sequences.
-	if tag=="train":
+	if tag == "train":
 		validSeqs = dataloader.train_seqs_KITTI
 	else:
 		validSeqs = dataloader.test_seqs_KITTI
@@ -194,8 +209,7 @@ def validate(epoch,tag="valid"):
 	# For the entire validation set
 	avgRotLoss = []
 	avgTrLoss = []
-	# avgRotLoss = 0.0
-	# avgTrLoss = 0.0
+	avgTotalLoss = []
 
 	
 	for idx, seq in enumerate(validSeqs):
@@ -204,29 +218,28 @@ def validate(epoch,tag="valid"):
 		seq_traj = np.zeros([seqLength-1,6])
 
 		# Loss for each sequence
-		# avgR_Loss_seq = 0.0;
-		# avgT_Loss_seq = 0.0;
 		avgR_Loss_seq = []
 		avgT_Loss_seq = []
-		
-		
+		avgTotal_Loss_seq = []
+				
 		flag = 0;
 
 		for frame1 in range(seqLength-1):
-			#print(frame1)
-			inp,axis,t = dataloader.getPairFrameInfo(frame1,frame1+1,seq,cmd.dataset)
 			
-			output_r, output_t = deepVO.forward(inp,flag)
+			inp,axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
+			
+			output_r, output_t = deepVO.forward(inp, flag)
+
 			# Outputs come in form of torch tensor. Convert to numpy.
-			seq_traj[frame1] = np.append(output_r.data.cpu().numpy(),output_t.data.cpu().numpy(),axis=1)
+			seq_traj[frame1] = np.append(output_r.data.cpu().numpy(), output_t.data.cpu().numpy(), axis = 1)
 
 			loss_r = criterion(output_r,axis)
 			loss_t = criterion(output_t,t)
-			# avgR_Loss_seq = (avgR_Loss_seq*frame1 + loss_r.item())/(frame1+1)
-			# avgT_Loss_seq = (avgT_Loss_seq*frame1 + loss_t.item())/(frame1+1)
+			loss = sum([loss_r, cmd.scf * loss_t])
+			
 			avgR_Loss_seq.append(loss_r.item())
 			avgT_Loss_seq.append(loss_t.item())
-
+			avgTotal_Loss_seq.append(loss.item())
 			
 			flag = 1
 
@@ -238,7 +251,6 @@ def validate(epoch,tag="valid"):
 
 		# Save the trajectory to text file of that sequence
 		filepath = os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2), 'traj_' + str(epoch) + '.txt')
-		# filepath = "/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2) + "/traj_" + str(epoch) +".txt"
 		np.savetxt(filepath, seq_traj, newline="\n")
 
 		# Save rotation and translation loss of that sequence
@@ -247,31 +259,31 @@ def validate(epoch,tag="valid"):
 		plt.ylabel("Rotation Loss")
 		plt.xlabel("Per pair of frames")
 		fig_r.savefig(os.path.join(expDir, 'plots', 'loss', 'seq_' + str(seq) + '_rotLoss_valid_epoch_' + str(epoch)))
-		# fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/loss/" + "seq_ " + str(seq) + "_rotLoss_valid_epoch_" + str(epoch))
-
+		
 		fig_t,ax_t = plt.subplots(1)
 		ax_t.plot(avgT_Loss_seq,'g')
 		plt.ylabel("Translation Loss")
 		plt.xlabel("Per pair of frames")
 		fig_t.savefig(os.path.join(expDir, 'plots', 'loss', 'seq_' + str(seq) + '_trans_Loss_valid_epoch_' + str(epoch)))
-		# fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/loss/" + "seq_ " + str(seq) + "_trans_Loss_valid_epoch_" + str(epoch))
+		
+		fig_tot, ax_tot = plt.subplots(1)
+		ax_tot.plot(avgTotal_Loss_seq, 'b')
+		plt.ylabel('Total Loss')
+		plt.xlabel('Per pair of frames')
+		fig_tot.savefig(os.path.join(expDir, 'plots', 'loss', 'seq_' + str(seq) + '_total_Loss_valid_epoch_' + str(epoch)))
 
-		# avgRotLoss = (avgRotLoss*idx + avgR_Loss_seq)/(idx+1)
-		# avgTrLoss = (avgTrLoss*idx + avgT_Loss_seq)/(idx+1)
 
 		avgRotLoss.append(np.mean(avgR_Loss_seq))
 		avgTrLoss.append(np.mean(avgT_Loss_seq))
-
-
-
-
+		avgTotalLoss.append(np.mean(avgTotal_Loss_seq))
 
 
 	# Return average rotation and translation loss for all the validation sequences.
-	return avgRotLoss,avgTrLoss				
+	return avgRotLoss, avgTrLoss, avgTotalLoss
+
 
 ########################################################################
-			  ### Model Definition + Weight loading ###
+### Model Definition + Weight init + FlowNet weight loading ###
 ########################################################################
 
 # Get the definition of the model
@@ -283,6 +295,9 @@ else:
 
 	# Model definition with batchnorm
 	deepVO = model.Net_DeepVO_WB()
+
+# Initialize weights (Xavier)
+deepVO.init_weights()
 
 # Copy weights
 if cmd.loadModel != "none":
@@ -306,7 +321,6 @@ if cmd.loadModel != "none":
 		flownetModel = checkpoint['state_dict']
 
 	deepVO = model.copyWeights(deepVO,flownetModel,cmd.modelType)
-	deepVO.init_weights()
 
 	# # For the linear layers of the model
 	# if cmd.initType == "xavier":
@@ -317,7 +331,7 @@ if cmd.loadModel != "none":
 
 
 ########################################################################
-				   ### Criterion and optimizer ###
+### Criterion and optimizer ###
 ########################################################################
 
 criterion = nn.MSELoss()
@@ -331,63 +345,78 @@ else:
 
 
 ########################################################################
-							###  Main loop ###
+###  Main loop ###
 ########################################################################
-r_tr=[];
-t_tr=[]
+r_tr = []
+t_tr = []
+totalLoss_train = []
+
 r_val=[]
 t_val=[]
+totalLoss_val = []
 
 for epoch in range(cmd.nepochs):
 
 	print("================> Starting epoch: "  + str(epoch+1) + "/" + str(cmd.nepochs))
 	
 	# Average loss over one training epoch	
-	r_trLoss , t_trLoss = train(epoch)
+	r_trLoss , t_trLoss, total_trLoss = train(epoch)
 	r_tr.append(r_trLoss)
 	t_tr.append(t_trLoss)
+	totalLoss_train.append(total_trLoss)
 
-	# # Average loss over entire validation set, a list of loss for all sequences
-	# r_valLoss, t_valLoss = validate(epoch,"valid")
-	# r_val.append(np.mean(r_valLoss))
-	# t_val.append(np.mean(t_valLoss))
+	# Average loss over entire validation set, a list of loss for all sequences
+	r_valLoss, t_valLoss, total_valLoss = validate(epoch,"valid")
+	r_val.append(np.mean(r_valLoss))
+	t_val.append(np.mean(t_valLoss))
+	totalLoss_val.append(np.mean(total_valLoss))
 
-	# # After all the epochs plot the translation and rotation loss  w.r.t. epochs
-	# fig_r,ax_r = plt.subplots(1)
-	# ax_r.plot(r_valLoss)
-	# plt.ylabel("Rotation Loss : validation")
-	# plt.xlabel("Per sequence")
-	# fig_r.savefig(os.path.join(expDir, 'val_rotLoss' + str(epoch)))
-	# # fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_rotLoss" + str(epoch))
+	# After all the epochs plot the translation and rotation loss  w.r.t. epochs
+	fig_r,ax_r = plt.subplots(1)
+	ax_r.plot(r_valLoss)
+	plt.ylabel("Rotation Loss : validation")
+	plt.xlabel("Per sequence")
+	fig_r.savefig(os.path.join(expDir, 'val_rotLoss' + str(epoch)))
+	# fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_rotLoss" + str(epoch))
 	
-	# fig_t,ax_t = plt.subplots(1)
-	# ax_t.plot(t_valLoss)
-	# plt.ylabel("Translation Loss : validation")
-	# plt.xlabel("Per sequence")
-	# fig_t.savefig(os.path.join(expDir, 'val_transLoss' + str(epoch)))
-	# # fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_trainLoss" + str(epoch))
+	fig_t,ax_t = plt.subplots(1)
+	ax_t.plot(t_valLoss)
+	plt.ylabel("Translation Loss : validation")
+	plt.xlabel("Per sequence")
+	fig_t.savefig(os.path.join(expDir, 'val_transLoss' + str(epoch)))
+	# fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_trainLoss" + str(epoch))
 
-	
+	fig_tot, ax_tot = plt.subplots(1)
+	ax_tot.plot(total_valLoss)
+	plt.ylabel('Total Loss: validation')
+	plt.xlabel('Per sequence')
+	fig_tot.savefig(os.path.join(expDir, 'val_totalLoss' + str(epoch)))
 
 
+# After all the epochs plot the translation and rotation loss  w.r.t. epochs
+fig_r,ax_r = plt.subplots(1)
+ax_r.plot(r_tr,label="train")
+ax_r.plot(r_val,label="valid")
+ax_r.legend()
+plt.ylabel("Rotation Loss")
+plt.xlabel("Per epoch")
+fig_r.savefig(os.path.join(expDir, 'rotLoss'))
 
-# # After all the epochs plot the translation and rotation loss  w.r.t. epochs
-# fig_r,ax_r = plt.subplots(1)
-# ax_r.plot(r_tr,label="train")
-# ax_r.plot(r_val,label="valid")
-# ax_r.legend()
-# plt.ylabel("Rotation Loss")
-# plt.xlabel("Per epoch")
-# fig_r.savefig(os.path.join(expDir, 'rotLoss'))
-# # fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "rotLoss")
+fig_t,ax_t = plt.subplots(1)
+ax_t.plot(t_tr,label =" train")
+ax_t.plot(t_val,label="valid")
+ax_t.legend()
+plt.ylabel("Translation Loss")
+plt.xlabel("Per epoch")
+fig_t.savefig(os.path.join(expDir, 'transLoss'))
 
-# fig_t,ax_t = plt.subplots(1)
-# ax_t.plot(t_tr,label =" train")
-# ax_t.plot(t_val,label="valid")
-# ax_t.legend()
-# plt.ylabel("Translation Loss")
-# plt.xlabel("Per epoch")
-# fig_t.savefig(os.path.join(expDir, 'transLoss'))
-# # fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "trainLoss")
-# print("Done !!")
+fig_tot, ax_tot = plt.subplots(1)
+ax_tot.plot(totalLoss_train, label = 'Train')
+ax_tot.plot(totalLoss_val, label = 'Valid')
+ax_tot.legend()
+plt.ylabel('Total Loss')
+plt.xlabel('Per epoch')
+fig_tot.savefig(os.path.join(expDir, 'totalLoss'))
+
+print("Done !!")
 
