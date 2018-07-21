@@ -1,0 +1,91 @@
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                           : Fri Jul 20 21:32:42 2018
+Driver Version                      : 390.25
+
+Attached GPUs                       : 1
+GPU 00000000:09:00.0
+    Accounting Mode                 : Enabled
+    Accounting Mode Buffer Size     : 1920
+    Accounted Processes
+        Process ID                  : 12842
+            GPU Utilization         : 67 %
+            Memory Utilization      : 63 %
+            Max memory usage        : 12615 MiB
+            Time                    : 1112070 ms
+            Is Running              : 0
+        Process ID                  : 16215
+            GPU Utilization         : 61 %
+            Memory Utilization      : 57 %
+            Max memory usage        : 12615 MiB
+            Time                    : 36054 ms
+            Is Running              : 0
+        Process ID                  : 16253
+            GPU Utilization         : 64 %
+            Memory Utilization      : 60 %
+            Max memory usage        : 12615 MiB
+            Time                    : 79828 ms
+            Is Running              : 0
+        Process ID                  : 16315
+            GPU Utilization         : 62 %
+            Memory Utilization      : 57 %
+            Max memory usage        : 12615 MiB
+            Time                    : 58794 ms
+            Is Running              : 0
+        Process ID                  : 16337
+            GPU Utilization         : 63 %
+            Memory Utilization      : 59 %
+            Max memory usage        : 12615 MiB
+            Time                    : 60450 ms
+            Is Running              : 0
+        Process ID                  : 16392
+            GPU Utilization         : 63 %
+            Memory Utilization      : 59 %
+            Max memory usage        : 12615 MiB
+            Time                    : 57016 ms
+            Is Running              : 0
+        Process ID                  : 16449
+            GPU Utilization         : 60 %
+            Memory Utilization      : 56 %
+            Max memory usage        : 12615 MiB
+            Time                    : 24174 ms
+            Is Running              : 0
+        Process ID                  : 16473
+            GPU Utilization         : 64 %
+            Memory Utilization      : 54 %
+            Max memory usage        : 12523 MiB
+            Time                    : 25550 ms
+            Is Running              : 0
+        Process ID                  : 16492
+            GPU Utilization         : 65 %
+            Memory Utilization      : 54 %
+            Max memory usage        : 12523 MiB
+            Time                    : 29732 ms
+            Is Running              : 0
+        Process ID                  : 27476
+            GPU Utilization         : 64 %
+            Memory Utilization      : 53 %
+            Max memory usage        : 0 MiB
+            Time                    : 29874 ms
+            Is Running              : 0
+
+Fri Jul 20 21:32:42 2018       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 390.25                 Driver Version: 390.25                    |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|===============================+======================+======================|
+|   0  Quadro P6000        Off  | 00000000:09:00.0 Off |                  Off |
+| 26%   45C    P8    18W / 250W |      2MiB / 24449MiB |      0%      Default |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+

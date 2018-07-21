@@ -22,8 +22,17 @@ import dataloader
 import time
 
 
-# Get the command arguements and intitialze the dataloader
+# Get the commandline arguements
 cmd = args.arguments;
+
+# Seed the RNGs (ensure deterministic outputs)
+rn.seed(cmd.randomseed)
+np.random.seed(cmd.randomseed)
+torch.manual_seed(cmd.randomseed)
+torch.cuda.manual_seed(cmd.randomseed)
+torch.backends.cudnn.deterministic = True
+
+# Intitialze the dataloader
 dataloader = dataloader.Dataloader()
 # Set the default tensor type
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -86,7 +95,8 @@ def train(epoch):
 	
 	trainSeqs = dataloader.train_seqs_KITTI
 	trajLength = list(range(dataloader.minFrame_KITTI,dataloader.maxFrame_KITTI, rn.randint(5,10)))
-	
+	trajLength = [40]	# ???
+
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
 
@@ -105,13 +115,15 @@ def train(epoch):
 		for tl in trajLength:
 			# get a random subsequence from 'seq' of length 'fl' : starting index, ending index
 			stFrm, enFrm = dataloader.getSubsequence(seq, tl, cmd.dataset)
+			stFrm, enFrm = 0, 40	# ???
 			# itterate over this subsequence and get the frame data.
 			flag = 0
 			print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
-			for frm1 in range(stFrm,enFrm):
-		
-				inp,axis,t = dataloader.getPairFrameInfo(frm1,frm1+1,seq,cmd.dataset)
+			for frm1 in range(stFrm, enFrm):
 
+				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
+				axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
+				t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 				
 				# Forward, compute loss and backprop
 				deepVO.zero_grad()
@@ -214,6 +226,7 @@ def validate(epoch, tag = 'valid'):
 	
 	for idx, seq in enumerate(validSeqs):
 		seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
+		seqLength = 41	# ???
 		# To store the entire estimated trajector 
 		seq_traj = np.zeros([seqLength-1,6])
 
@@ -225,8 +238,10 @@ def validate(epoch, tag = 'valid'):
 		flag = 0;
 
 		for frame1 in range(seqLength-1):
-			
+
 			inp,axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
+			axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
+			t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 			
 			output_r, output_t = deepVO.forward(inp, flag)
 
@@ -244,9 +259,9 @@ def validate(epoch, tag = 'valid'):
 			flag = 1
 
 
-		# Plot the trajectory of that sequence
+		# # Plot the trajectory of that sequence
 		# if tag == "valid":
-		# 	plotSequences(seq,seqLength,seq_traj,cmd.dataset,cmd)
+		# 	plotSequences(seq, seqLength, seq_traj, cmd.dataset, cmd)
 
 
 		# Save the trajectory to text file of that sequence
@@ -280,6 +295,7 @@ def validate(epoch, tag = 'valid'):
 
 	# Return average rotation and translation loss for all the validation sequences.
 	return avgRotLoss, avgTrLoss, avgTotalLoss
+
 
 
 ########################################################################

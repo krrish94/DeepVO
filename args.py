@@ -14,7 +14,7 @@ parser.add_argument("-dataset",help="dataset to be used for training the network
 parser.add_argument("-lr", help="learning rate",type = float, default = 1e-4)
 parser.add_argument("-momentum", help="momentum", type = float, default = 0.009)
 parser.add_argument("-weightDecay", help ="weight decay", type = float, default = 0.004)
-parser.add_argument("-lrDecay", help ="learning rate decay", type = float, default = 0.5)
+parser.add_argument("-lrDecay", help = "learning rate decay", type = float, default = 0.5)
 parser.add_argument("-iterations", help="number of iterations after which to compute loss", type=int, default =100)
 
 parser.add_argument("-crit", help="criterion type", default="MSE")
@@ -29,9 +29,9 @@ parser.add_argument("-scf", help =" scaling factor to reduce the translation los
 ################### Model and experiment #####################
 parser.add_argument("-snapshot", help =" when to take model snapshots", type =int,default = 5)
 parser.add_argument("-expID", help =" experiment ID", default =" tmp")
-parser.add_argument("-cachedir", help = "(Relative path to) directory in which to store logs, models, plots, etc.", default = "cache")
+parser.add_argument("-cachedir", help = "(Relative path to) directory in which to store logs, models, plots, etc.", type = str, default = "cache")
 
-
+parser.add_argument('-randomseed', help = 'Seed for pseudorandom number generator', type = int, default = 12345)
 
 
 
