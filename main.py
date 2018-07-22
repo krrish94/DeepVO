@@ -124,7 +124,9 @@ def train(epoch):
 			# stFrm, enFrm = 0, 40	# ???
 			# itterate over this subsequence and get the frame data.
 			flag = 0
-			print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
+			# print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
+			tqdm.write('Sequence : ' + str(seq) + ' Start frame : ' + str(stFrm) + ' End frame : ' \
+				+ str(enFrm), file = sys.stdout)
 			for frm1 in range(stFrm, enFrm):
 
 				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
@@ -185,9 +187,12 @@ def train(epoch):
 					itt_R_Loss = 0.0
 					itt_tot_Loss = 0.0
 
-			print('Rot Loss: ', str(itt_R_Loss), 'Trans Loss: ', str(itt_T_Loss))
-			print('Total Loss: ', str(itt_tot_Loss))
-			
+			# print('Rot Loss: ', str(itt_R_Loss), 'Trans Loss: ', str(itt_T_Loss))
+			# print('Total Loss: ', str(itt_tot_Loss))
+			tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
+				file = sys.stdout)
+			tqdm.write('Total Loss: ' + str(itt_tot_Loss), file = sys.stdout)
+
 					
 	# Save plot for loss					
 	fig_r,ax_r = plt.subplots(1)
@@ -230,7 +235,7 @@ def validate(epoch, tag = 'valid'):
 	avgTotalLoss = []
 
 	
-	for idx, seq in enumerate(validSeqs):
+	for idx, seq in trange(enumerate(validSeqs)):
 		seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 		# seqLength = 41	# ???
 		# To store the entire estimated trajector 
@@ -243,7 +248,7 @@ def validate(epoch, tag = 'valid'):
 				
 		flag = 0;
 
-		for frame1 in range(seqLength-1):
+		for frame1 in trange(seqLength-1):
 
 			inp,axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
 			# axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
@@ -265,8 +270,11 @@ def validate(epoch, tag = 'valid'):
 			flag = 1
 
 
-		print('Rot Loss: ', str(np.mean(avgR_Loss_seq)), 'Trans Loss: ', str(np.mean(avgT_Loss_seq)))
-		print('Total Loss: ', str(np.mean(avgTotal_Loss_seq)))
+		# print('Rot Loss: ', str(np.mean(avgR_Loss_seq)), 'Trans Loss: ', str(np.mean(avgT_Loss_seq)))
+		# print('Total Loss: ', str(np.mean(avgTotal_Loss_seq)))
+		tqdm.write('Rot Loss: ' + str(np.mean(avgR_Loss_seq)) + ' Trans Loss: ', \
+			str(np.mean(avgT_Loss_seq)), file = sys.stdout)
+		tqdm.write('Total Loss: ' + str(np.mean(avgTotal_Loss_seq)), file = sys.stdout)
 
 		# # Plot the trajectory of that sequence
 		# if tag == "valid":
