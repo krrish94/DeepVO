@@ -47,10 +47,11 @@ parser.add_argument('-cachedir', \
 parser.add_argument('-datadir', help = 'Absolute path to the directory that holds the dataset', \
 	type = str, default = '/data/milatmp1/sharmasa/KITTI/dataset/')
 
-
-################### Model and experiment #####################
-parser.add_argument('-snapshot', help = 'when to take model snapshots', type =int, default = 5)
+###### Experiments, Snapshots, and Visualization #############
 parser.add_argument('-expID', help = 'experiment ID', default = 'tmp')
+parser.add_argument('-snapshot', help = 'when to take model snapshots', type = int, default = 5)
+parser.add_argument('-tensorboardX', help = 'Whether or not to use tensorboardX for \
+	visualization', type = bool, default = True)
 
 ################### Reproducibility ##########################
 parser.add_argument('-randomseed', help = 'Seed for pseudorandom number generator', \

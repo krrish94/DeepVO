@@ -6,12 +6,25 @@
 
 This is a `PyTorch` implementation. We assume `PyTorch` and dependencies are setup. This code has been tested on `PyTorch 0.4` with `CUDA 9.0` and `CUDNN <VERSION>`.
 
-We use the following dependencies: `scipy`, `scikit-image`, `matplotlib`, `tqdm`, and `natsort`.
+Dependencies: `scipy`, `scikit-image`, `matplotlib`, `tqdm`, and `natsort`.
+We also use `tensorboardX` for visualization purposes.
 
+#### tqdm (pip)
 ```
 pip install --user tqdm
 ```
 
+#### tqdm (conda)
 ```
 conda install -c conda-forge tqdm
+```
+
+#### tensorboardX (pip)
+```
+pip install tensorboardX
+```
+
+#### tensorboardX (build from source)
+```
+pip install git+https://github.com/lanpa/tensorboard-pytorch
 ```

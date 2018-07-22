@@ -88,10 +88,20 @@ cmdFile.close()
 # 	cmdFile.write(arg + " " + str(getattr(cmd,arg)) + "\n")
 # cmdFile.close()
 
+
+########################################################################
+### tensorboardX visualization ###
+########################################################################
+
+if cmd.tensorboardX is True:
+	from tensorboardX import SummaryWriter
+	writer = SummaryWriter(log_dir = expDir)
+
+
 ########################################################################
 ### Train and validation Functions ###
 ########################################################################
-def train(epoch):
+def train(epoch, iters):
 
 	#Switching to train mode
 	deepVO.train()
@@ -192,11 +202,18 @@ def train(epoch):
 					itt_R_Loss = 0.0
 					itt_tot_Loss = 0.0
 
+				iters += 1
+
 			# print('Rot Loss: ', str(itt_R_Loss), 'Trans Loss: ', str(itt_T_Loss))
 			# print('Total Loss: ', str(itt_tot_Loss))
 			tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
 				file = sys.stdout)
 			tqdm.write('Total Loss: ' + str(itt_tot_Loss), file = sys.stdout)
+
+			# For tensorboardX visualization
+			if cmd.tensorboardX is True:
+				writer.add_scalars('loss', {'rot_loss_train': itt_R_Loss, \
+					'trans_loss_train': itt_T_Loss,	'total_loss_train': itt_tot_Loss}, iters)
 
 					
 	# Save plot for loss					
@@ -220,7 +237,8 @@ def train(epoch):
 
 	if avgRotLoss == [] and avgTrLoss == [] and avgTotalLoss == []:
 		return 0.0, 0.0, 0.0
-	return sum(avgRotLoss)/float(len(avgRotLoss)), sum(avgTrLoss)/float(len(avgTrLoss)), sum(avgTotalLoss)/float(len(avgTotalLoss))
+	return sum(avgRotLoss)/float(len(avgRotLoss)), sum(avgTrLoss)/float(len(avgTrLoss)), \
+	sum(avgTotalLoss)/float(len(avgTotalLoss)), iters
 
 
 def validate(epoch, tag = 'valid'):
@@ -395,12 +413,14 @@ r_val=[]
 t_val=[]
 totalLoss_val = []
 
+# Number of iterations elapsed
+iters = 0
 for epoch in range(cmd.nepochs):
 
 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 	
 	# Average loss over one training epoch	
-	r_trLoss , t_trLoss, total_trLoss = train(epoch+1)
+	r_trLoss , t_trLoss, total_trLoss, iters = train(epoch+1, iters)
 	r_tr.append(r_trLoss)
 	t_tr.append(t_trLoss)
 	totalLoss_train.append(total_trLoss)
@@ -411,6 +431,11 @@ for epoch in range(cmd.nepochs):
 	r_val.append(np.mean(r_valLoss))
 	t_val.append(np.mean(t_valLoss))
 	totalLoss_val.append(np.mean(total_valLoss))
+
+	# tensorboardX visualization
+	if cmd.tensorboardX is True:
+		writer.add_scalars('loss/', {'rot_loss_val': np.mean(r_valLoss), \
+			'trans_loss_val': np.mean(t_valLoss), 'total_loss_val': np.mean(total_valLoss)}, iters)
 
 	# After all the epochs plot the translation and rotation loss  w.r.t. epochs
 	fig_r,ax_r = plt.subplots(1)
