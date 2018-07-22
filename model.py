@@ -9,6 +9,7 @@ from torch.autograd import Variable as V
 class Net_DeepVO_WOB(nn.Module):
 	
 	def __init__(self, activation = 'relu'):
+		
 		super(Net_DeepVO_WOB, self).__init__()
 		# CNN
 		self.conv1   = nn.Conv2d(6,64,7,2,3)
@@ -20,7 +21,6 @@ class Net_DeepVO_WOB(nn.Module):
 		self.conv5   = nn.Conv2d(512,512,3,2,1)
 		self.conv5_1 = nn.Conv2d(512,512,3,1,1)
 		self.conv6   = nn.Conv2d(512,1024,3,2,1)
-
 
 		# LSTM
 		self.LSTM1 = nn.LSTMCell(122880,1024)
@@ -39,7 +39,10 @@ class Net_DeepVO_WOB(nn.Module):
 
 		# Store activation function information
 		self.activation = activation
-		print('Using SELU activation')
+		if str.lower(self.activation) == 'selu':
+			print('Using SELU activation')
+		elif str.lower(self.activation) == 'relu':
+			print('Using ReLU activation')
 
 
 	def init_weights(self):

@@ -389,18 +389,24 @@ if cmd.loadModel != "none":
 
 
 ########################################################################
-### Criterion and optimizer ###
+### Criterion, optimizer, and scheduler ###
 ########################################################################
 
 criterion = nn.MSELoss()
 
-if cmd.optMethod == "adam":
+if cmd.optMethod == 'adam':
 	optimizer = optim.Adam(deepVO.parameters(), lr = cmd.lr, betas = (cmd.beta1, cmd.beta2), weight_decay = cmd.weightDecay, amsgrad = False)
-elif cmd.optMethod == "sgd":
+elif cmd.optMethod == 'sgd':
 	optimizer = optim.SGD(deepVO.parameters(), lr = cmd.lr, momentum = cmd.momentum, weight_decay = cmd.weightDecay, nesterov = False)
 else:
 	optimizer = optim.Adagrad(deepVO.parameters(), lr = cmd.lr, lr_decay = cmd.lrDecay , weight_decay = cmd.weightDecay)
 
+# Initialize scheduler, if specified
+if cmd.lrScheduler is not None:
+	if cmd.lrScheduler == 'cosine':
+		scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = cmd.nepochs)
+	elif cmd.lrScheduler == 'plateau':
+		scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
 ########################################################################
 ###  Main loop ###
@@ -431,6 +437,10 @@ for epoch in range(cmd.nepochs):
 	r_val.append(np.mean(r_valLoss))
 	t_val.append(np.mean(t_valLoss))
 	totalLoss_val.append(np.mean(total_valLoss))
+
+	# Scheduler step, if applicable
+	if cmd.lrScheduler is not None:
+		scheduler.step()
 
 	# tensorboardX visualization
 	if cmd.tensorboardX is True:

@@ -31,6 +31,8 @@ parser.add_argument('-gradClip', help = 'Max allowed magnitude for the gradient 
 # parser.add_argument('-crit', help = 'Error criterion', default = 'MSE')
 parser.add_argument('-optMethod', help = 'Optimization method : adam | sgd | adagrad ', \
 	type = str.lower, choices = ['adam', 'sgd', 'adagrad'], default = 'adam')
+parser.add_argument('-lrScheduler', help = 'Learning rate scheduler', type = str.lower, \
+	choices = ['cosine', 'plateau'])
 
 parser.add_argument('-nepochs', help = 'Number of epochs', type = int, default = 50)
 parser.add_argument('-trainBatch', help = 'train batch size', type = int, default = 1)
