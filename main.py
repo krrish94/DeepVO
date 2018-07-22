@@ -21,6 +21,7 @@ from tqdm import tqdm, trange
 
 # Other project files with definitions
 import args
+from curriculum import Curriculum
 import dataloader
 from drawPlot import plotSequences
 import model
@@ -109,8 +110,11 @@ def train(epoch, iters):
 	trainSeqs = dataloader.train_seqs_KITTI
 	# trajLength = list(range(dataloader.minFrame_KITTI, dataloader.maxFrame_KITTI, \
 	# 	rn.randint(5, 20)))
-	trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
-	# trajLength = [40]	# ???
+	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
+	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100)) for x in [curriculum.cur_seqlen])
+	trajLength = [curriculum.cur_seqlen for i in range(100)]
+	if curriculum.cur_seqlen > curriculum.min_frames:
+		trajLength += list(np.random.randint(curriculum.min_frames, curriculum.cur_seqlen, size = 50))
 
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
@@ -419,6 +423,9 @@ r_val=[]
 t_val=[]
 totalLoss_val = []
 
+# Initialize a quadratic curriculum class
+curriculum = Curriculum()
+
 # Number of iterations elapsed
 iters = 0
 for epoch in range(cmd.nepochs):
@@ -441,6 +448,9 @@ for epoch in range(cmd.nepochs):
 	# Scheduler step, if applicable
 	if cmd.lrScheduler is not None:
 		scheduler.step()
+
+	# Curriculum step
+	curriculum.step(total_trLoss)
 
 	# tensorboardX visualization
 	if cmd.tensorboardX is True:
