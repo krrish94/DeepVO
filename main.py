@@ -36,7 +36,7 @@ torch.cuda.manual_seed(cmd.randomseed)
 torch.backends.cudnn.deterministic = True
 
 # Intitialze the dataloader
-dataloader = dataloader.Dataloader()
+dataloader = dataloader.Dataloader(cmd.datadir)
 # Set the default tensor type
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
@@ -99,8 +99,8 @@ def train(epoch):
 	trainSeqs = dataloader.train_seqs_KITTI
 	# trajLength = list(range(dataloader.minFrame_KITTI, dataloader.maxFrame_KITTI, \
 	# 	rn.randint(5, 20)))
-	trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
-	# trajLength = [40]	# ???
+	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
+	trajLength = [40]	# ???
 
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
@@ -224,7 +224,7 @@ def validate(epoch, tag = 'valid'):
 	deepVO.eval()
 
 	# In validation will predicit the loss between every two successive frames in all the training / validation sequences.
-	if tag == "train":
+	if tag == 'train':
 		validSeqs = dataloader.train_seqs_KITTI
 	else:
 		validSeqs = dataloader.test_seqs_KITTI
@@ -234,9 +234,11 @@ def validate(epoch, tag = 'valid'):
 	avgTrLoss = []
 	avgTotalLoss = []
 
-	
-	for idx, seq in trange(enumerate(validSeqs)):
-		seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
+
+	for seq in tqdm(validSeqs, unit = 'sequences'):
+
+		seqLength = len(os.listdir(os.path.join(cmd.datadir, 'sequences', str(seq).zfill(2), 'image_2')))
+		# seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 		# seqLength = 41	# ???
 		# To store the entire estimated trajector 
 		seq_traj = np.zeros([seqLength-1,6])
@@ -272,7 +274,7 @@ def validate(epoch, tag = 'valid'):
 
 		# print('Rot Loss: ', str(np.mean(avgR_Loss_seq)), 'Trans Loss: ', str(np.mean(avgT_Loss_seq)))
 		# print('Total Loss: ', str(np.mean(avgTotal_Loss_seq)))
-		tqdm.write('Rot Loss: ' + str(np.mean(avgR_Loss_seq)) + ' Trans Loss: ', \
+		tqdm.write('Rot Loss: ' + str(np.mean(avgR_Loss_seq)) + ' Trans Loss: ' + \
 			str(np.mean(avgT_Loss_seq)), file = sys.stdout)
 		tqdm.write('Total Loss: ' + str(np.mean(avgTotal_Loss_seq)), file = sys.stdout)
 
@@ -398,6 +400,7 @@ for epoch in range(cmd.nepochs):
 	t_tr.append(t_trLoss)
 	totalLoss_train.append(total_trLoss)
 
+	print('==> Validation (epoch: ' + str(epoch+1) + ')')
 	# Average loss over entire validation set, a list of loss for all sequences
 	r_valLoss, t_valLoss, total_valLoss = validate(epoch,"valid")
 	r_val.append(np.mean(r_valLoss))

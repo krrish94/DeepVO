@@ -24,14 +24,23 @@ parser.add_argument("-nepochs", help="number of epochs",type = int, default=50)
 parser.add_argument("-trainBatch", help="train batch size", type = int, default =1)
 parser.add_argument("-validBatch", help="valid batch size", type = int, default=1)
 
-parser.add_argument("-scf", help =" scaling factor to reduce the translation loss", type = float, default=0.01)
+parser.add_argument("-scf", help = 'scaling factor to reduce the translation loss', type = float, default=0.01)
+
+
+################### Paths #####################################
+parser.add_argument('-cachedir', \
+	help = '(Relative path to) directory in which to store logs, models, plots, etc.', \
+	type = str, default = 'cache')
+parser.add_argument('-datadir', help = 'Absolute path to the directory that holds the dataset', \
+	type = str, default = '/data/milatmp1/sharmasa/KITTI/dataset/')
+
 
 ################### Model and experiment #####################
-parser.add_argument("-snapshot", help =" when to take model snapshots", type =int,default = 5)
-parser.add_argument("-expID", help =" experiment ID", default =" tmp")
-parser.add_argument("-cachedir", help = "(Relative path to) directory in which to store logs, models, plots, etc.", type = str, default = "cache")
+parser.add_argument("-snapshot", help = 'when to take model snapshots', type =int,default = 5)
+parser.add_argument("-expID", help = 'experiment ID', default = 'tmp')
 
-parser.add_argument('-randomseed', help = 'Seed for pseudorandom number generator', type = int, default = 12345)
+parser.add_argument('-randomseed', help = 'Seed for pseudorandom number generator', \
+	type = int, default = 12345)
 
 
 

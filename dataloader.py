@@ -14,7 +14,8 @@ import torch
 
 
 class Dataloader:
-	def __init__(self):
+
+	def __init__(self, datadir):
 
 		
 		# KITTI dataloader parameters
@@ -50,11 +51,17 @@ class Dataloader:
 		self.height_KITTI = 384
 		self.channels_KITTI = 3
 
+		# Path to KITTI dataset dir
+		self.datadir = datadir
+
 
 	# Get start and end of a subsequence 
 	def getSubsequence(self, seq, tl, dataset):
-		if dataset == "KITTI":
-			seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
+
+		if dataset == 'KITTI':
+			seqLength = len(os.listdir(os.path.join(self.datadir, 'sequences', str(seq).zfill(2), \
+				'image_2')))
+			# seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 
 		st_frm = rn.randint(0, seqLength-tl)
 		end_frm = st_frm + tl - 1;
@@ -79,10 +86,15 @@ class Dataloader:
 	# Get the image pair and their corresponding R and T.
 	def getPairFrameInfo(self, frame1, frame2, seq, dataset):
 
-		if dataset == "KITTI":
+		if dataset == 'KITTI':
+
 			# Load the two images : loaded as H x W x 3(R,G,B)
-			img1 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frame1).zfill(6) + ".png")
-			img2 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frame2).zfill(6) + ".png")
+			img1 = smc.imread(os.path.join(self.datadir, 'sequences', str(seq).zfill(2), \
+				'image_2', str(frame1).zfill(6) + '.png'))
+			img2 = smc.imread(os.path.join(self.datadir, 'sequences', str(seq).zfill(2), \
+				'image_2', str(frame2).zfill(6) + '.png'))
+			# img1 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frame1).zfill(6) + ".png")
+			# img2 = smc.imread("/data/milatmp1/sharmasa/"+ dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/" + str(frame2).zfill(6) + ".png")
 			
 			# Preprocess : returned after mean subtraction, resize and NCWH
 			img1 = self.preprocessImg(img1)
@@ -95,7 +107,8 @@ class Dataloader:
 			inputTensor = (pair.float()).cuda()
 
 			# Load the poses. The frames are  0 based indexed.
-			poses = open("/data/milatmp1/sharmasa/"+ dataset + "/dataset/poses/" + str(seq).zfill(2) + ".txt").readlines()
+			poses = open(os.path.join(self.datadir, 'poses', str(seq).zfill(2) + '.txt')).readlines()
+			# poses = open("/data/milatmp1/sharmasa/"+ dataset + "/dataset/poses/" + str(seq).zfill(2) + ".txt").readlines()
 			pose_frame1 = np.concatenate( (np.asarray([(float(i)) for i in poses[frame1].split(' ')]).reshape(3,4) , [[0.0,0.0,0.0,1.0]] ), axis=0); # 4x4 transformation matrix
 			pose_frame2 = np.concatenate( (np.asarray([(float(i)) for i in poses[frame2].split(' ')]).reshape(3,4) , [[0.0,0.0,0.0,1.0]] ), axis=0); # 4x4 transformation matrix
 
