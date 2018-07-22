@@ -29,5 +29,5 @@ class Curriculum:
 
 		if cur_loss <= self.good_loss:
 			self.cur_seqlen += np.random.randint(self.cur_seqlen, int(np.ceil(self.cur_seqlen*1.5)))
-			if self.cur_seqlen > max_frames:
-				self.cur_seqlen = max_frames
+			if self.cur_seqlen > self.max_frames:
+				self.cur_seqlen = self.max_frames

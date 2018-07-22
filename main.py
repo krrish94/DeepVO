@@ -240,7 +240,7 @@ def train(epoch, iters):
 	fig_tot.savefig(os.path.join(expDir, 'plots', 'loss', 'totalLoss_epoch_' + str(epoch)))
 
 	if avgRotLoss == [] and avgTrLoss == [] and avgTotalLoss == []:
-		return 0.0, 0.0, 0.0
+		return 0.0, 0.0, 0.0, iters
 	return sum(avgRotLoss)/float(len(avgRotLoss)), sum(avgTrLoss)/float(len(avgTrLoss)), \
 	sum(avgTotalLoss)/float(len(avgTotalLoss)), iters
 
