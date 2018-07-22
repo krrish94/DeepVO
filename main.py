@@ -99,8 +99,8 @@ def train(epoch):
 	trainSeqs = dataloader.train_seqs_KITTI
 	# trajLength = list(range(dataloader.minFrame_KITTI, dataloader.maxFrame_KITTI, \
 	# 	rn.randint(5, 20)))
-	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
-	trajLength = [40]	# ???
+	trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
+	# trajLength = [40]	# ???
 
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
@@ -372,7 +372,7 @@ if cmd.loadModel != "none":
 criterion = nn.MSELoss()
 
 if cmd.optMethod == "adam":
-	optimizer = optim.Adam(deepVO.parameters(), lr = cmd.lr, betas = (0.9, 0.999), weight_decay = cmd.weightDecay, amsgrad = False)
+	optimizer = optim.Adam(deepVO.parameters(), lr = cmd.lr, betas = (cmd.beta1, cmd.beta2), weight_decay = cmd.weightDecay, amsgrad = False)
 elif cmd.optMethod == "sgd":
 	optimizer = optim.SGD(deepVO.parameters(), lr = cmd.lr, momentum = cmd.momentum, weight_decay = cmd.weightDecay, nesterov = False)
 else:

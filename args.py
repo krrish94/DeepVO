@@ -16,6 +16,8 @@ parser.add_argument("-momentum", help="momentum", type = float, default = 0.009)
 parser.add_argument("-weightDecay", help ="weight decay", type = float, default = 0.004)
 parser.add_argument("-lrDecay", help = "learning rate decay", type = float, default = 0.5)
 parser.add_argument("-iterations", help="number of iterations after which to compute loss", type=int, default =100)
+parser.add_argument('-beta1', help = 'beta1 for ADAM optimizer', type = float, default = 0.9)
+parser.add_argument('-beta2', help = 'beta2 for ADAM optimizer', type = float, default = 0.999)
 
 parser.add_argument("-crit", help="criterion type", default="MSE")
 parser.add_argument("-optMethod", help="optimization methods : adam | sgd | adagrad ", default="adam")
