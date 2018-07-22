@@ -125,8 +125,8 @@ def train(epoch):
 			# itterate over this subsequence and get the frame data.
 			flag = 0
 			# print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
-			tqdm.write('Sequence : ' + str(seq) + ' Start frame : ' + str(stFrm) + ' End frame : ' \
-				+ str(enFrm), file = sys.stdout)
+			tqdm.write('Epoch: ' + str(epoch) + ' Sequence : ' + str(seq) + ' Start frame : ' \
+				+ str(stFrm) + ' End frame : ' + str(enFrm), file = sys.stdout)
 			for frm1 in range(stFrm, enFrm):
 
 				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
@@ -324,7 +324,7 @@ def validate(epoch, tag = 'valid'):
 # Get the definition of the model
 if cmd.modelType !="checkpoint_wb":
 # Model definition without batchnorm
-	deepVO = model.Net_DeepVO_WOB()
+	deepVO = model.Net_DeepVO_WOB(activation = cmd.activation)
 
 else:
 

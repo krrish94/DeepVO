@@ -7,7 +7,7 @@ from torch.autograd import Variable as V
 
 # Model without batchnorm
 class Net_DeepVO_WOB(nn.Module):
-	def __init__(self):
+	def __init__(self, activation = 'relu'):
 		super(Net_DeepVO_WOB, self).__init__()
 		# CNN
 		self.conv1   = nn.Conv2d(6,64,7,2,3)
@@ -36,6 +36,10 @@ class Net_DeepVO_WOB(nn.Module):
 		self.fc_r = nn.Linear(128,3)
 		self.fc_t = nn.Linear(128,3)
 
+		# Store activation function information
+		self.activation = activation
+		print('Using SELU activation')
+
 
 	def init_weights(self):
 		for m in self.modules():
@@ -59,15 +63,26 @@ class Net_DeepVO_WOB(nn.Module):
 						nn.init.uniform_(param)
 
 
-	def forward(self, x,flag):
-		x = (F.relu(self.conv1(x)))
-		x = (F.relu(self.conv2(x)))
-		x = (F.relu(self.conv3(x)))
-		x = (F.relu(self.conv3_1(x)))
-		x = (F.relu(self.conv4(x)))
-		x = (F.relu(self.conv4_1(x)))
-		x = (F.relu(self.conv5(x)))
-		x = (F.relu(self.conv5_1(x)))
+	def forward(self, x, flag):
+
+		if self.activation == 'relu':
+			x = (F.relu(self.conv1(x)))
+			x = (F.relu(self.conv2(x)))
+			x = (F.relu(self.conv3(x)))
+			x = (F.relu(self.conv3_1(x)))
+			x = (F.relu(self.conv4(x)))
+			x = (F.relu(self.conv4_1(x)))
+			x = (F.relu(self.conv5(x)))
+			x = (F.relu(self.conv5_1(x)))
+		elif self.activation == 'selu':
+			x = (F.selu(self.conv1(x)))
+			x = (F.selu(self.conv2(x)))
+			x = (F.selu(self.conv3(x)))
+			x = (F.selu(self.conv3_1(x)))
+			x = (F.selu(self.conv4(x)))
+			x = (F.selu(self.conv4_1(x)))
+			x = (F.selu(self.conv5(x)))
+			x = (F.selu(self.conv5_1(x)))
 		x = ((self.conv6(x))) # No relu at the last conv
 
 		x = x.view(-1,20*6*1024);
@@ -88,7 +103,10 @@ class Net_DeepVO_WOB(nn.Module):
 		self.h_t1,self.c_t1 = self.LSTM1(x, (self.h_t1,self.c_t1))
 		self.h_t2,self.c_t2 = self.LSTM2(self.h_t1,(self.h_t2,self.c_t2))
 
-		output_fc1 = (F.relu(self.fc1(self.h_t2)))
+		if self.activation == 'relu':
+			output_fc1 = (F.relu(self.fc1(self.h_t2)))
+		elif self.activation == 'selu':
+			output_fc1 = (F.selu(self.fc1(self.h_t2)))
 		output_r = self.fc_r(output_fc1)
 		output_t = self.fc_t(output_fc1)
 
