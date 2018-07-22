@@ -5,3 +5,4 @@ exp/*
 exp/*/*
 *.txt
 cache/*
+slurm-*.out
