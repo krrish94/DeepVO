@@ -7,6 +7,7 @@ from torch.autograd import Variable as V
 
 # Model without batchnorm
 class Net_DeepVO_WOB(nn.Module):
+	
 	def __init__(self, activation = 'relu'):
 		super(Net_DeepVO_WOB, self).__init__()
 		# CNN
@@ -72,7 +73,10 @@ class Net_DeepVO_WOB(nn.Module):
 						# b_og is the bias for the output gate.
 						# So, we compute the location of the forget gate bias terms as the 
 						# middle one-fourth of the bias vector, and initialize them.
-						nn.init.uniform_(param)
+						
+						# First initialize all biases to zero
+						# nn.init.uniform_(param)
+						nn.init.constant_(param, 0.)
 						bias = getattr(m, name)
 						n = bias.size(0)
 						start, end = n // 4, n // 2

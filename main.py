@@ -154,6 +154,11 @@ def train(epoch):
 				else:
 					loss.backward(retain_graph = False)
 
+				# Perform gradient clipping
+				if cmd.gradClip is not None:
+					torch.nn.utils.clip_grad_norm_(deepVO.parameters(), cmd.gradClip)
+
+				# Update model parameters
 				optimizer.step()
 
 				# There are two ways to save the hidden states for temporal use :
