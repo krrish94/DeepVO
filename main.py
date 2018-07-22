@@ -1,26 +1,29 @@
-from __future__ import print_function, division
-from torch.autograd import Variable as V
-from drawPlot import plotSequences
+"""
+Main script: Train and test DeepVO on the KITTI odometry benchmark
+"""
 
-import sys
-import os
-import torch
-import numpy as np
+
+from __future__ import print_function, division
+import itertools
 import random as rn
-import torch.nn as nn
-import torch.optim as optim
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+import sys
+import time
+import torch
+from torch.autograd import Variable as V
+import torch.nn as nn
+import torch.optim as optim
+from tqdm import tqdm, trange
 
-
-
-# Files with definitions
-import model
+# Other project files with definitions
 import args
 import dataloader
-import time
-
+from drawPlot import plotSequences
+import model
 
 # Get the commandline arguements
 cmd = args.arguments;
@@ -94,8 +97,10 @@ def train(epoch):
 	deepVO.train()
 	
 	trainSeqs = dataloader.train_seqs_KITTI
-	trajLength = list(range(dataloader.minFrame_KITTI,dataloader.maxFrame_KITTI, rn.randint(5,10)))
-	trajLength = [40]	# ???
+	# trajLength = list(range(dataloader.minFrame_KITTI, dataloader.maxFrame_KITTI, \
+	# 	rn.randint(5, 20)))
+	trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
+	# trajLength = [40]	# ???
 
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
@@ -112,18 +117,19 @@ def train(epoch):
 	
 
 	for seq in trainSeqs:
-		for tl in trajLength:
+		# for tl in trajLength:
+		for tl in tqdm(trajLength, unit = 'seqs'):
 			# get a random subsequence from 'seq' of length 'fl' : starting index, ending index
 			stFrm, enFrm = dataloader.getSubsequence(seq, tl, cmd.dataset)
-			stFrm, enFrm = 0, 40	# ???
+			# stFrm, enFrm = 0, 40	# ???
 			# itterate over this subsequence and get the frame data.
 			flag = 0
 			print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
 			for frm1 in range(stFrm, enFrm):
 
 				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
-				axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
-				t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
+				# axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
+				# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 				
 				# Forward, compute loss and backprop
 				deepVO.zero_grad()
@@ -226,7 +232,7 @@ def validate(epoch, tag = 'valid'):
 	
 	for idx, seq in enumerate(validSeqs):
 		seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
-		seqLength = 41	# ???
+		# seqLength = 41	# ???
 		# To store the entire estimated trajector 
 		seq_traj = np.zeros([seqLength-1,6])
 
@@ -240,8 +246,8 @@ def validate(epoch, tag = 'valid'):
 		for frame1 in range(seqLength-1):
 
 			inp,axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
-			axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
-			t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
+			# axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
+			# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 			
 			output_r, output_t = deepVO.forward(inp, flag)
 
@@ -258,6 +264,9 @@ def validate(epoch, tag = 'valid'):
 			
 			flag = 1
 
+
+		print('Rot Loss: ', str(np.mean(avgR_Loss_seq)), 'Trans Loss: ', str(np.mean(avgT_Loss_seq)))
+		print('Total Loss: ', str(np.mean(avgTotal_Loss_seq)))
 
 		# # Plot the trajectory of that sequence
 		# if tag == "valid":

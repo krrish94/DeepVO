@@ -18,20 +18,20 @@ class Dataloader:
 
 		
 		# KITTI dataloader parameters
-		# self.r_KITTImean = 88.61
-		# self.g_KITTImean = 93.70
-		# self.b_KITTImean = 92.11
+		self.r_KITTImean = 88.61
+		self.g_KITTImean = 93.70
+		self.b_KITTImean = 92.11
 		
-		# self.r_KITTIstddev = 79.35914872
-		# self.g_KITTIstddev = 80.69872125
-		# self.b_KITTIstddev = 82.34685558
+		self.r_KITTIstddev = 79.35914872
+		self.g_KITTIstddev = 80.69872125
+		self.b_KITTIstddev = 82.34685558
 
-		self.r_KITTImean = 0.0
-		self.g_KITTImean = 0.0
-		self.b_KITTImean = 0.0
-		self.r_KITTIstddev = 1.0
-		self.g_KITTIstddev = 1.0
-		self.b_KITTIstddev = 1.0
+		# self.r_KITTImean = 0.0
+		# self.g_KITTImean = 0.0
+		# self.b_KITTImean = 0.0
+		# self.r_KITTIstddev = 1.0
+		# self.g_KITTIstddev = 1.0
+		# self.b_KITTIstddev = 1.0
 
 		# 4541, 1101, 4661, 4071, 1591
 		#self.train_seqs_KITTI = [0,1,2,8,9]
@@ -42,16 +42,13 @@ class Dataloader:
 		self.test_seqs_KITTI = [1]
 		self.total_seqs_KITTI =[1]
 
-		# self.minFrame_KITTI = 2;
-		# self.maxFrame_KITTI = 1095;
-
-		self.minFrame_KITTI = 5;
-		self.maxFrame_KITTI = 30;
+		self.minFrame_KITTI = 2
+		self.maxFrame_KITTI = 1095
 
 		# Dimensions to be fed in the input
-		self.width_KITTI = 1280;
-		self.height_KITTI = 384;
-		self.channels_KITTI = 3;
+		self.width_KITTI = 1280
+		self.height_KITTI = 384
+		self.channels_KITTI = 3
 
 
 	# Get start and end of a subsequence 
@@ -76,10 +73,7 @@ class Dataloader:
 		img = torch.from_numpy(img)
 		img = img.permute(2,0,1)
 
-		return img
-
-
-		
+		return img	
 
 
 	# Get the image pair and their corresponding R and T.
@@ -108,15 +102,11 @@ class Dataloader:
 			# Make the transformation
 			pose2_wrt1 = np.dot(inv(pose_frame1),pose_frame2); # Take a point in frame2 to a point in frame 1 ==> point_1 = (pose2_wrt1)*(point_2)
 
-			# Extract R and T, convert it to axis angle form
+			# Extract R and t, convert it to axis angle form
 			R = pose2_wrt1[0:3,0:3]
 			axisAngle = (torch.from_numpy(np.asarray(rotMat_to_axisAngle(R))).view(-1,3)).float().cuda()
-			
+			t = (torch.from_numpy(pose2_wrt1[0:3,3]).view(-1,3)).float().cuda()
 
-			T = (torch.from_numpy(pose2_wrt1[0:3,3]).view(-1,3)).float().cuda()
-
-			axisAngle = torch.from_numpy(np.array([[0,1,0]])).float().cuda()
-			T = torch.from_numpy(np.array([[0.3,0.01,1.5]])).float().cuda()
-			return inputTensor,axisAngle,T
+			return inputTensor, axisAngle, t
 
 
