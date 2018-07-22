@@ -18,21 +18,21 @@ class Dataloader:
 	def __init__(self, datadir):
 
 		
-		# KITTI dataloader parameters
-		self.r_KITTImean = 88.61
-		self.g_KITTImean = 93.70
-		self.b_KITTImean = 92.11
+		# # KITTI dataloader parameters
+		# self.r_KITTImean = 88.61
+		# self.g_KITTImean = 93.70
+		# self.b_KITTImean = 92.11
 		
-		self.r_KITTIstddev = 79.35914872
-		self.g_KITTIstddev = 80.69872125
-		self.b_KITTIstddev = 82.34685558
+		# self.r_KITTIstddev = 79.35914872
+		# self.g_KITTIstddev = 80.69872125
+		# self.b_KITTIstddev = 82.34685558
 
-		# self.r_KITTImean = 0.0
-		# self.g_KITTImean = 0.0
-		# self.b_KITTImean = 0.0
-		# self.r_KITTIstddev = 1.0
-		# self.g_KITTIstddev = 1.0
-		# self.b_KITTIstddev = 1.0
+		self.r_KITTImean = 0.0
+		self.g_KITTImean = 0.0
+		self.b_KITTImean = 0.0
+		self.r_KITTIstddev = 1.0
+		self.g_KITTIstddev = 1.0
+		self.b_KITTIstddev = 1.0
 
 		# 4541, 1101, 4661, 4071, 1591
 		#self.train_seqs_KITTI = [0,1,2,8,9]

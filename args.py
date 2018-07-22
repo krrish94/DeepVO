@@ -47,7 +47,7 @@ parser.add_argument('-datadir', help = 'Absolute path to the directory that hold
 
 
 ################### Model and experiment #####################
-parser.add_argument('-snapshot', help = 'when to take model snapshots', type =int,default = 5)
+parser.add_argument('-snapshot', help = 'when to take model snapshots', type =int, default = 5)
 parser.add_argument('-expID', help = 'experiment ID', default = 'tmp')
 
 ################### Reproducibility ##########################

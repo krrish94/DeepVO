@@ -392,17 +392,17 @@ totalLoss_val = []
 
 for epoch in range(cmd.nepochs):
 
-	print("================> Starting epoch: "  + str(epoch+1) + "/" + str(cmd.nepochs))
+	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 	
 	# Average loss over one training epoch	
-	r_trLoss , t_trLoss, total_trLoss = train(epoch)
+	r_trLoss , t_trLoss, total_trLoss = train(epoch+1)
 	r_tr.append(r_trLoss)
 	t_tr.append(t_trLoss)
 	totalLoss_train.append(total_trLoss)
 
 	print('==> Validation (epoch: ' + str(epoch+1) + ')')
 	# Average loss over entire validation set, a list of loss for all sequences
-	r_valLoss, t_valLoss, total_valLoss = validate(epoch,"valid")
+	r_valLoss, t_valLoss, total_valLoss = validate(epoch+1, 'valid')
 	r_val.append(np.mean(r_valLoss))
 	t_val.append(np.mean(t_valLoss))
 	totalLoss_val.append(np.mean(total_valLoss))
@@ -410,18 +410,16 @@ for epoch in range(cmd.nepochs):
 	# After all the epochs plot the translation and rotation loss  w.r.t. epochs
 	fig_r,ax_r = plt.subplots(1)
 	ax_r.plot(r_valLoss)
-	plt.ylabel("Rotation Loss : validation")
-	plt.xlabel("Per sequence")
-	fig_r.savefig(os.path.join(expDir, 'val_rotLoss' + str(epoch)))
-	# fig_r.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_rotLoss" + str(epoch))
+	plt.ylabel('Rotation Loss : validation')
+	plt.xlabel('Per sequence')
+	fig_r.savefig(os.path.join(expDir, 'val_rotLoss' + str(epoch+1)))
 	
 	fig_t,ax_t = plt.subplots(1)
 	ax_t.plot(t_valLoss)
-	plt.ylabel("Translation Loss : validation")
-	plt.xlabel("Per sequence")
+	plt.ylabel('Translation Loss : validation')
+	plt.xlabel('Per sequence')
 	fig_t.savefig(os.path.join(expDir, 'val_transLoss' + str(epoch)))
-	# fig_t.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/" + "val_trainLoss" + str(epoch))
-
+	
 	fig_tot, ax_tot = plt.subplots(1)
 	ax_tot.plot(total_valLoss)
 	plt.ylabel('Total Loss: validation')
@@ -431,19 +429,19 @@ for epoch in range(cmd.nepochs):
 
 # After all the epochs plot the translation and rotation loss  w.r.t. epochs
 fig_r,ax_r = plt.subplots(1)
-ax_r.plot(r_tr,label="train")
-ax_r.plot(r_val,label="valid")
+ax_r.plot(r_tr, label = 'train')
+ax_r.plot(r_val, label = 'valid')
 ax_r.legend()
-plt.ylabel("Rotation Loss")
-plt.xlabel("Per epoch")
+plt.ylabel('Rotation Loss')
+plt.xlabel('Per epoch')
 fig_r.savefig(os.path.join(expDir, 'rotLoss'))
 
 fig_t,ax_t = plt.subplots(1)
-ax_t.plot(t_tr,label =" train")
-ax_t.plot(t_val,label="valid")
+ax_t.plot(t_tr,label = 'train')
+ax_t.plot(t_val,label = 'valid')
 ax_t.legend()
-plt.ylabel("Translation Loss")
-plt.xlabel("Per epoch")
+plt.ylabel('Translation Loss')
+plt.xlabel('Per epoch')
 fig_t.savefig(os.path.join(expDir, 'transLoss'))
 
 fig_tot, ax_tot = plt.subplots(1)
@@ -454,5 +452,4 @@ plt.ylabel('Total Loss')
 plt.xlabel('Per epoch')
 fig_tot.savefig(os.path.join(expDir, 'totalLoss'))
 
-print("Done !!")
-
+print('Done !!')
