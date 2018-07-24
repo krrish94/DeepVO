@@ -39,7 +39,7 @@ parser.add_argument('-trainBatch', help = 'train batch size', type = int, defaul
 parser.add_argument('-validBatch', help = 'valid batch size', type = int, default = 1)
 
 parser.add_argument('-scf', help = 'Scaling factor for the translation loss terms', \
-	type = float, default=0.01)
+	type = float, default = 0.01)
 
 
 ################### Paths #####################################

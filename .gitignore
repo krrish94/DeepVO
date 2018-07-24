@@ -6,3 +6,4 @@ exp/*/*
 *.txt
 cache/*
 slurm-*.out
+runs/*

@@ -137,10 +137,14 @@ def train(epoch, iters):
 			stFrm, enFrm = dataloader.getSubsequence(seq, tl, cmd.dataset)
 			# stFrm, enFrm = 0, 40	# ???
 			# itterate over this subsequence and get the frame data.
-			flag = 0
+			reset_hidden = True
 			# print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
 			tqdm.write('Epoch: ' + str(epoch) + ' Sequence : ' + str(seq) + ' Start frame : ' \
 				+ str(stFrm) + ' End frame : ' + str(enFrm), file = sys.stdout)
+			deepVO.zero_grad()
+			loss_r = torch.zeros(1, dtype = torch.float32).cuda()
+			loss_t = torch.zeros(1, dtype = torch.float32).cuda()
+			loss = torch.zeros(1, dtype = torch.float32).cuda()
 			for frm1 in range(stFrm, enFrm):
 
 				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
@@ -148,11 +152,13 @@ def train(epoch, iters):
 				# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 				
 				# Forward, compute loss and backprop
-				deepVO.zero_grad()
-				output_r, output_t = deepVO.forward(inp, flag)
+				# deepVO.zero_grad()
+				output_r, output_t = deepVO.forward(inp, reset_hidden)
 				
-				loss_r = criterion(output_r,axis)
-				loss_t = cmd.scf * criterion(output_t,t)
+				batchsize_scale = torch.from_numpy(np.asarray([1. / tl], dtype = np.float32)).cuda()
+				loss_r += batchsize_scale * criterion(output_r, axis)
+				loss_t += batchsize_scale * cmd.scf * criterion(output_t,t)
+				loss += sum([loss_r, loss_t])
 				
 				# Soln 1: This works ###
 				# loss_r.backward(retain_graph = True)
@@ -162,18 +168,19 @@ def train(epoch, iters):
 				# 	loss_t.backward(retain_graph = False)
 				
 				# Soln 2:
-				loss = sum([loss_r, loss_t])
-				if frm1 != enFrm-1:
-					loss.backward(retain_graph = True)
-				else:
-					loss.backward(retain_graph = False)
+				# loss += sum([loss_r, loss_t])
+				# loss.backward()
+				# if frm1 != enFrm-1:
+				# 	loss.backward(retain_graph = True)
+				# else:
+				# 	loss.backward(retain_graph = False)
 
 				# Perform gradient clipping
 				if cmd.gradClip is not None:
 					torch.nn.utils.clip_grad_norm_(deepVO.parameters(), cmd.gradClip)
 
 				# Update model parameters
-				optimizer.step()
+				# optimizer.step()
 
 				# There are two ways to save the hidden states for temporal use :
 				# WAY 1. use retain graph = true while doing backward pass , for all the passes except the last one where the (sub) sequence ends. 
@@ -194,7 +201,7 @@ def train(epoch, iters):
 				itt_T_Loss = (itt_T_Loss*num_itt + loss_t.item())/(num_itt+1)
 				itt_tot_Loss = (itt_tot_Loss*num_itt + loss.item()) / (num_itt + 1)
 
-				flag = 1
+				reset_hidden = False
 				num_itt = num_itt + 1
 
 				if num_itt == cmd.iterations:
@@ -208,6 +215,13 @@ def train(epoch, iters):
 
 				iters += 1
 
+			loss.backward()
+			optimizer.step()
+
+			# Detach LSTM hidden states
+			deepVO.detach_LSTM_hidden()
+
+
 			# print('Rot Loss: ', str(itt_R_Loss), 'Trans Loss: ', str(itt_T_Loss))
 			# print('Total Loss: ', str(itt_tot_Loss))
 			tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
@@ -216,7 +230,7 @@ def train(epoch, iters):
 
 			# For tensorboardX visualization
 			if cmd.tensorboardX is True:
-				writer.add_scalars('loss', {'rot_loss_train': itt_R_Loss, \
+				writer.add_scalars('loss/train', {'rot_loss_train': itt_R_Loss, \
 					'trans_loss_train': itt_T_Loss,	'total_loss_train': itt_tot_Loss}, iters)
 
 					
@@ -275,7 +289,7 @@ def validate(epoch, tag = 'valid'):
 		avgT_Loss_seq = []
 		avgTotal_Loss_seq = []
 				
-		flag = 0;
+		reset_hidden = True
 
 		for frame1 in trange(seqLength-1):
 
@@ -283,7 +297,7 @@ def validate(epoch, tag = 'valid'):
 			# axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
 			# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 			
-			output_r, output_t = deepVO.forward(inp, flag)
+			output_r, output_t = deepVO.forward(inp, reset_hidden)
 
 			# Outputs come in form of torch tensor. Convert to numpy.
 			seq_traj[frame1] = np.append(output_r.data.cpu().numpy(), output_t.data.cpu().numpy(), axis = 1)
@@ -296,7 +310,9 @@ def validate(epoch, tag = 'valid'):
 			avgT_Loss_seq.append(loss_t.item())
 			avgTotal_Loss_seq.append(loss.item())
 			
-			flag = 1
+			reset_hidden = False
+
+			deepVO.detach_LSTM_hidden()
 
 
 		# print('Rot Loss: ', str(np.mean(avgR_Loss_seq)), 'Trans Loss: ', str(np.mean(avgT_Loss_seq)))
@@ -424,7 +440,8 @@ t_val=[]
 totalLoss_val = []
 
 # Initialize a quadratic curriculum class
-curriculum = Curriculum()
+curriculum = Curriculum(good_loss = 5e-3, min_frames = 10, max_frames = 100, \
+	curriculum_type = 'quadratic')
 
 # Number of iterations elapsed
 iters = 0
@@ -454,7 +471,7 @@ for epoch in range(cmd.nepochs):
 
 	# tensorboardX visualization
 	if cmd.tensorboardX is True:
-		writer.add_scalars('loss/', {'rot_loss_val': np.mean(r_valLoss), \
+		writer.add_scalars('loss/val', {'rot_loss_val': np.mean(r_valLoss), \
 			'trans_loss_val': np.mean(t_valLoss), 'total_loss_val': np.mean(total_valLoss)}, iters)
 
 	# After all the epochs plot the translation and rotation loss  w.r.t. epochs

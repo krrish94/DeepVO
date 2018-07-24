@@ -24,18 +24,21 @@ class Net_DeepVO_WOB(nn.Module):
 
 		# LSTM
 		self.LSTM1 = nn.LSTMCell(122880,1024)
-		self.LSTM2 = nn.LSTMCell(1024,1024)
+		# self.LSTM2 = nn.LSTMCell(1024,1024)
+		self.LSTM2 = nn.LSTMCell(1024,128)
 
-		self.c_t1 = torch.zeros(1,1024);
-		self.c_t2 = torch.zeros(1,1024);
-		self.h_t1 = torch.zeros(1,1024);
-		self.h_t2 = torch.zeros(1,1024);
+		self.h1 = torch.zeros(1, 1024)
+		self.c1 = torch.zeros(1, 1024)
+		# self.h2 = torch.zeros(1,1024);
+		# self.c2 = torch.zeros(1,1024);
+		self.h2 = torch.zeros(1, 128)
+		self.c2 = torch.zeros(1, 128)
 		
 		# FC
-		self.fc1 = nn.Linear(1024,128)
-		#self.fc2 = nn.Linear(128,12)
-		self.fc_r = nn.Linear(128,3)
-		self.fc_t = nn.Linear(128,3)
+		# self.fc1 = nn.Linear(1024,128)
+		self.fc1 = nn.Linear(128, 32)
+		self.fc_rot = nn.Linear(32, 3)
+		self.fc_trans = nn.Linear(32,3)
 
 		# Store activation function information
 		self.activation = activation
@@ -86,7 +89,7 @@ class Net_DeepVO_WOB(nn.Module):
 						bias.data[start:end].fill_(10.)
 
 
-	def forward(self, x, flag):
+	def forward(self, x, reset_hidden = True):
 
 		if self.activation == 'relu':
 			x = (F.relu(self.conv1(x)))
@@ -108,33 +111,43 @@ class Net_DeepVO_WOB(nn.Module):
 			x = (F.selu(self.conv5_1(x)))
 		x = ((self.conv6(x))) # No relu at the last conv
 
-		x = x.view(-1,20*6*1024);
+		x = x.view(-1,20*6*1024)
 		
 		# New sequence is being passed
-		if flag == 0:
-			self.c_t1 = torch.zeros(1,1024);
-			self.c_t2 = torch.zeros(1,1024);
-			self.h_t1 = torch.zeros(1,1024);
-			self.h_t2 = torch.zeros(1,1024);
-		else:
-			self.c_t1 = self.c_t1.detach()
-			self.c_t2 = self.c_t2.detach()
-			self.h_t1 = self.h_t1.detach()
-			self.h_t2 = self.h_t2.detach()
+		if reset_hidden is True:
+			self.h1 = torch.zeros(1,1024)
+			self.c1 = torch.zeros(1,1024)
+			# self.h2 = torch.zeros(1,1024)
+			# self.c2 = torch.zeros(1,1024)
+			self.h2 = torch.zeros(1, 128)
+			self.c2 = torch.zeros(1, 128)
+		# else:
+		# 	self.c_t1 = self.c_t1.detach()
+		# 	self.c_t2 = self.c_t2.detach()
+		# 	self.h_t1 = self.h_t1.detach()
+		# 	self.h_t2 = self.h_t2.detach()
 		
 		
-		self.h_t1,self.c_t1 = self.LSTM1(x, (self.h_t1,self.c_t1))
-		self.h_t2,self.c_t2 = self.LSTM2(self.h_t1,(self.h_t2,self.c_t2))
+		self.h1, self.c1 = self.LSTM1(x, (self.h1, self.c1))
+		self.h2, self.c2 = self.LSTM2(self.h1, (self.h2, self.c2))
 
 		if self.activation == 'relu':
-			output_fc1 = (F.relu(self.fc1(self.h_t2)))
+			output_fc1 = (F.relu(self.fc1(self.h2)))
 		elif self.activation == 'selu':
-			output_fc1 = (F.selu(self.fc1(self.h_t2)))
-		output_r = self.fc_r(output_fc1)
-		output_t = self.fc_t(output_fc1)
+			output_fc1 = (F.selu(self.fc1(self.h2)))
+		
+		output_rot = self.fc_rot(output_fc1)
+		output_trans = self.fc_trans(output_fc1)
 
-		return output_r, output_t
+		return output_rot, output_trans
 
+
+	def detach_LSTM_hidden(self):
+
+		self.h1 = self.h1.detach()
+		self.c1 = self.c1.detach()
+		self.h2 = self.h2.detach()
+		self.c2 = self.c2.detach()
 
 
 class Net_DeepVO_WB(nn.Module):
@@ -193,7 +206,7 @@ class Net_DeepVO_WB(nn.Module):
 				if m.bias is not None:
 					m.bias.data.zero_()
 
-	def forward(self, x,flag):
+	def forward(self, x, flag):
 		x = (F.relu(self.conv1_bn(self.conv1(x))))
 		x = (F.relu(self.conv2_bn(self.conv2(x))))
 		x = (F.relu(self.conv3_bn(self.conv3(x))))
