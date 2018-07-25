@@ -102,7 +102,10 @@ if cmd.tensorboardX is True:
 ########################################################################
 ### Train and validation Functions ###
 ########################################################################
+
 def train(epoch, iters):
+
+	
 
 	#Switching to train mode
 	deepVO.train()
@@ -135,13 +138,14 @@ def train(epoch, iters):
 		for tl in tqdm(trajLength, unit = 'seqs'):
 			# get a random subsequence from 'seq' of length 'fl' : starting index, ending index
 			stFrm, enFrm = dataloader.getSubsequence(seq, tl, cmd.dataset)
-			# stFrm, enFrm = 0, 40	# ???
 			# itterate over this subsequence and get the frame data.
 			reset_hidden = True
-			# print("Sequence : ", seq, "start frame : ", stFrm, "end frame : ", enFrm)
-			tqdm.write('Epoch: ' + str(epoch) + ' Sequence : ' + str(seq) + ' Start frame : ' \
-				+ str(stFrm) + ' End frame : ' + str(enFrm), file = sys.stdout)
+
+			# tqdm.write('Epoch: ' + str(epoch) + ' Sequence : ' + str(seq) + ' Start frame : ' \
+			# 	+ str(stFrm) + ' End frame : ' + str(enFrm), file = sys.stdout)
+
 			deepVO.zero_grad()
+
 			loss_r = torch.zeros(1, dtype = torch.float32).cuda()
 			loss_t = torch.zeros(1, dtype = torch.float32).cuda()
 			loss = torch.zeros(1, dtype = torch.float32).cuda()
@@ -152,8 +156,9 @@ def train(epoch, iters):
 				# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 				
 				# Forward, compute loss and backprop
-				# deepVO.zero_grad()
+				# deepVO.zero_grad()					
 				output_r, output_t = deepVO.forward(inp, reset_hidden)
+
 				
 				batchsize_scale = torch.from_numpy(np.asarray([1. / tl], dtype = np.float32)).cuda()
 				loss_r += batchsize_scale * criterion(output_r, axis)
@@ -215,18 +220,22 @@ def train(epoch, iters):
 
 				iters += 1
 
+				
 			loss.backward()
+
+					
+			# Take optimizer steps.
 			optimizer.step()
+
+
 
 			# Detach LSTM hidden states
 			deepVO.detach_LSTM_hidden()
 
 
-			# print('Rot Loss: ', str(itt_R_Loss), 'Trans Loss: ', str(itt_T_Loss))
-			# print('Total Loss: ', str(itt_tot_Loss))
-			tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
-				file = sys.stdout)
-			tqdm.write('Total Loss: ' + str(itt_tot_Loss), file = sys.stdout)
+			# tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
+			# 	file = sys.stdout)
+			# tqdm.write('Total Loss: ' + str(itt_tot_Loss), file = sys.stdout)
 
 			# For tensorboardX visualization
 			if cmd.tensorboardX is True:
@@ -252,6 +261,8 @@ def train(epoch, iters):
 	plt.ylabel('Total Loss')
 	plt.xlabel('Per' + str(cmd.iterations) + ' iterations in one epoch')
 	fig_tot.savefig(os.path.join(expDir, 'plots', 'loss', 'totalLoss_epoch_' + str(epoch)))
+
+
 
 	if avgRotLoss == [] and avgTrLoss == [] and avgTotalLoss == []:
 		return 0.0, 0.0, 0.0, iters
@@ -407,7 +418,6 @@ if cmd.loadModel != "none":
 	deepVO.cuda()
 	print(' Loaded weights !!')
 
-
 ########################################################################
 ### Criterion, optimizer, and scheduler ###
 ########################################################################
@@ -445,11 +455,13 @@ curriculum = Curriculum(good_loss = 5e-3, min_frames = 10, max_frames = 100, \
 
 # Number of iterations elapsed
 iters = 0
+
 for epoch in range(cmd.nepochs):
 
 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 	
 	# Average loss over one training epoch	
+
 	r_trLoss , t_trLoss, total_trLoss, iters = train(epoch+1, iters)
 	r_tr.append(r_trLoss)
 	t_tr.append(t_trLoss)
