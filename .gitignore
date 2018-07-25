@@ -7,3 +7,5 @@ exp/*/*
 cache/*
 slurm-*.out
 runs/*
+matlab/*.png
+*.png
