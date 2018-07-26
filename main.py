@@ -50,7 +50,7 @@ if cmd.debug is True:
 
 
 # Intitialze the dataloader
-dataloader = dataloader.Dataloader(cmd.datadir)
+dataloader = dataloader.Dataloader(cmd.datadir, parameterization = cmd.outputParameterization)
 # Set the default tensor type
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
@@ -159,8 +159,8 @@ def train(epoch, iters):
 			# itterate over this subsequence and get the frame data.
 			reset_hidden = True
 
-			# tqdm.write('Epoch: ' + str(epoch) + ' Sequence : ' + str(seq) + ' Start frame : ' \
-			# 	+ str(stFrm) + ' End frame : ' + str(enFrm), file = sys.stdout)
+			tqdm.write('Epoch: ' + str(epoch) + ' Sequence : ' + str(seq) + ' Start frame : ' \
+				+ str(stFrm) + ' End frame : ' + str(enFrm), file = sys.stdout)
 
 			deepVO.zero_grad()
 
@@ -176,13 +176,12 @@ def train(epoch, iters):
 				# Forward, compute loss and backprop
 				# deepVO.zero_grad()					
 				output_r, output_t = deepVO.forward(inp, reset_hidden)
-
 				
 				batchsize_scale = torch.from_numpy(np.asarray([1. / tl], dtype = np.float32)).cuda()
 				loss_r += batchsize_scale * criterion(output_r, axis)
 				loss_t += batchsize_scale * cmd.scf * criterion(output_t,t)
-				loss = loss_r
-				# loss += sum([loss_r, loss_t])
+				# loss = (1. / cmd.scf) * loss_t
+				loss += sum([loss_r, loss_t])
 				
 				# Soln 1: This works ###
 				# loss_r.backward(retain_graph = True)
@@ -252,9 +251,9 @@ def train(epoch, iters):
 			deepVO.detach_LSTM_hidden()
 
 
-			# tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
-			# 	file = sys.stdout)
-			# tqdm.write('Total Loss: ' + str(itt_tot_Loss), file = sys.stdout)
+			tqdm.write('Rot Loss: ' + str(itt_R_Loss) + ' Trans Loss: ' + str(itt_T_Loss), 
+				file = sys.stdout)
+			tqdm.write('Total Loss: ' + str(itt_tot_Loss), file = sys.stdout)
 
 			# For tensorboardX visualization
 			if cmd.tensorboardX is True:
@@ -316,8 +315,11 @@ def validate(epoch, tag = 'valid'):
 		seqLength = len(os.listdir(os.path.join(cmd.datadir, 'sequences', str(seq).zfill(2), 'image_2')))
 		# seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 		# seqLength = 41	# ???
-		# To store the entire estimated trajector 
-		seq_traj = np.zeros([seqLength-1,6])
+		# To store the entire estimated trajector
+		if cmd.outputParameterization == 'default': 
+			seq_traj = np.zeros([seqLength-1,6])
+		elif cmd.outputParameterization == 'quaternion':
+			seq_traj = np.zeros([seqLength-1,7])
 
 		# Loss for each sequence
 		avgR_Loss_seq = []
@@ -338,11 +340,11 @@ def validate(epoch, tag = 'valid'):
 			output_r, output_t = deepVO.forward(inp, reset_hidden)
 
 			# Outputs come in form of torch tensor. Convert to numpy.
-			seq_traj[frame1] = np.append(output_r.data.cpu().numpy(), output_t.data.cpu().numpy(), axis = 1)
+			seq_traj[frame1] = np.concatenate((output_r.data.cpu().numpy(), output_t.data.cpu().numpy()), axis = 1)
 
 			loss_r = criterion(output_r,axis)
-			loss_t = criterion(output_t,t)
-			loss = sum([loss_r, cmd.scf * loss_t])
+			loss_t = cmd.scf * criterion(output_t,t)
+			loss = sum([loss_r, loss_t])
 			
 			avgR_Loss_seq.append(loss_r.item())
 			avgT_Loss_seq.append(loss_t.item())
@@ -405,7 +407,8 @@ def validate(epoch, tag = 'valid'):
 # Get the definition of the model
 if cmd.modelType !="checkpoint_wb":
 # Model definition without batchnorm
-	deepVO = model.Net_DeepVO_WOB(activation = cmd.activation)
+	deepVO = model.Net_DeepVO_WOB(activation = cmd.activation, \
+		parameterization = cmd.outputParameterization)
 
 else:
 
@@ -486,7 +489,7 @@ t_val=[]
 totalLoss_val = []
 
 # Initialize a quadratic curriculum class
-curriculum = Curriculum(good_loss = 5e-3, min_frames = 10, max_frames = 100, \
+curriculum = Curriculum(good_loss = 5e-3, min_frames = 10, max_frames = 60, \
 	curriculum_type = 'quadratic')
 
 # Number of iterations elapsed

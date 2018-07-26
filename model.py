@@ -8,8 +8,11 @@ from torch.autograd import Variable as V
 # Model without batchnorm
 class Net_DeepVO_WOB(nn.Module):
 	
-	def __init__(self, activation = 'relu'):
+	def __init__(self, activation = 'relu', parameterization = 'default'):
 		
+		# Parameterization representing the transfrom output by the network
+		self.parameterization = parameterization
+
 		super(Net_DeepVO_WOB, self).__init__()
 		# CNN
 		self.conv1   = nn.Conv2d(6,64,7,2,3)
@@ -37,7 +40,10 @@ class Net_DeepVO_WOB(nn.Module):
 		# FC
 		# self.fc1 = nn.Linear(1024,128)
 		self.fc1 = nn.Linear(128, 32)
-		self.fc_rot = nn.Linear(32, 3)
+		if self.parameterization == 'quaternion':
+			self.fc_rot = nn.Linear(32, 4)
+		else:
+			self.fc_rot = nn.Linear(32, 3)
 		self.fc_trans = nn.Linear(32,3)
 
 		# Store activation function information
