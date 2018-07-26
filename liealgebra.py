@@ -19,6 +19,9 @@ def axisAngle_to_rotMat(omega):
 
 	theta = np.sqrt(omega[0]*omega[0] + omega[1]*omega[1] + omega[2]*omega[2])
 
+	if theta < 1e-8:
+		return np.eye(3,3)
+
 	omega_cross = np.stack([0.0, -omega[2], omega[1], omega[2], 0.0, -omega[0], -omega[1], omega[0], 0.0])
 	omega_cross = np.reshape(omega_cross, [3,3])
 

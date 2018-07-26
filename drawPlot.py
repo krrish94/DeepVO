@@ -60,20 +60,20 @@ def plotSequences(seq,seqLength,trajectory,dataset,cmd):
 	z_est = estimatedCameraTraj[:,2]
 	
 	# Save plot
-	currNumPlots = len(glob.glob1("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2),"*.png"))
+	currNumPlots = len(glob.glob1("/u/sharmasa/Documents/DeepVO/cache/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2),"*.png"))
 
 	assert (currNumPlots%2==0)
 	fig,ax = plt.subplots(1)
 	ax.plot(x_gt,z_gt, 'c', label = "ground truth")
 	ax.plot(x_est,z_est, 'm', label= "estimated")
 	ax.legend()
-	fig.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2) + "/" + str(currNumPlots/2 + 1))
+	fig.savefig("/u/sharmasa/Documents/DeepVO/cache/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2) + "/" + str(currNumPlots/2 + 1))
 
 	# To save only the predicted plot
 	fig_,ax_ = plt.subplots(1)
 	ax_.plot(x_est,z_est, 'm', label="estimated traj")
 	ax_.legend()
-	fig_.savefig("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2) + "/est_" + str(currNumPlots/2 + 1))
+	fig_.savefig("/u/sharmasa/Documents/DeepVO/cache/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" +  str(seq).zfill(2) + "/est_" + str(currNumPlots/2 + 1))
 
 
 
