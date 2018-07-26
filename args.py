@@ -43,6 +43,9 @@ parser.add_argument('-validBatch', help = 'valid batch size', type = int, defaul
 parser.add_argument('-scf', help = 'Scaling factor for the translation loss terms', \
 	type = float, default = 0.01)
 
+parser.add_argument('-l', help = 'For L2 regularization', \
+	type = float, default = 0.0)
+
 
 ################### Paths #####################################
 parser.add_argument('-cachedir', \

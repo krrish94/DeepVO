@@ -238,14 +238,23 @@ def train(epoch, iters):
 
 				iters += 1
 
+
+
+			# Regularization for network weights
+			l2_reg = None
+			for W in deepVO.parameters():
+				if l2_reg is None:
+					l2_reg = W.norm(2)
+				else:
+					l2_reg = l2_reg + W.norm(2)
+
+			l2_reg = cmd.l * l2_reg
+			loss = sum([l2_reg,loss])
 				
 			loss.backward()
-
 					
 			# Take optimizer steps.
 			optimizer.step()
-
-
 
 			# Detach LSTM hidden states
 			deepVO.detach_LSTM_hidden()
@@ -356,15 +365,13 @@ def validate(epoch, tag = 'valid'):
 			deepVO.detach_LSTM_hidden()
 
 
-		# print('Rot Loss: ', str(np.mean(avgR_Loss_seq)), 'Trans Loss: ', str(np.mean(avgT_Loss_seq)))
-		# print('Total Loss: ', str(np.mean(avgTotal_Loss_seq)))
 		tqdm.write('Rot Loss: ' + str(np.mean(avgR_Loss_seq)) + ' Trans Loss: ' + \
 			str(np.mean(avgT_Loss_seq)), file = sys.stdout)
 		tqdm.write('Total Loss: ' + str(np.mean(avgTotal_Loss_seq)), file = sys.stdout)
 
-		# # Plot the trajectory of that sequence
-		# if tag == "valid":
-		# 	plotSequences(seq, seqLength, seq_traj, cmd.dataset, cmd)
+		# Plot the trajectory of that sequence
+		if tag == "valid":
+			plotSequences(expDir, seq, seqLength, seq_traj, cmd.dataset, cmd)
 
 
 		# Save the trajectory to text file of that sequence
@@ -531,19 +538,19 @@ for epoch in range(cmd.nepochs):
 
 	# After all the epochs plot the translation and rotation loss  w.r.t. epochs
 	fig_r,ax_r = plt.subplots(1)
-	ax_r.plot(r_valLoss)
+	ax_r.plot(r_val)
 	plt.ylabel('Rotation Loss : validation')
 	plt.xlabel('Per sequence')
 	fig_r.savefig(os.path.join(expDir, 'val_rotLoss' + str(epoch+1)))
 	
 	fig_t,ax_t = plt.subplots(1)
-	ax_t.plot(t_valLoss)
+	ax_t.plot(t_val)
 	plt.ylabel('Translation Loss : validation')
 	plt.xlabel('Per sequence')
 	fig_t.savefig(os.path.join(expDir, 'val_transLoss' + str(epoch)))
 	
 	fig_tot, ax_tot = plt.subplots(1)
-	ax_tot.plot(total_valLoss)
+	ax_tot.plot(totalLoss_val)
 	plt.ylabel('Total Loss: validation')
 	plt.xlabel('Per sequence')
 	fig_tot.savefig(os.path.join(expDir, 'val_totalLoss' + str(epoch)))
