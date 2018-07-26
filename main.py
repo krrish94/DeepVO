@@ -46,7 +46,7 @@ if cmd.isDeterministic:
 # Debug parameters
 if cmd.debug is True:
 	debugIters = 3
-	cmd.epoch = 2
+	cmd.nepochs = 2
 
 
 # Intitialze the dataloader
@@ -297,6 +297,8 @@ def validate(epoch, tag = 'valid'):
 	avgTrLoss = []
 	avgTotalLoss = []
 
+	if cmd.debug:
+		validSeqs = [validSeqs[0]]
 
 	for seq in tqdm(validSeqs, unit = 'sequences'):
 
@@ -310,6 +312,9 @@ def validate(epoch, tag = 'valid'):
 		avgR_Loss_seq = []
 		avgT_Loss_seq = []
 		avgTotal_Loss_seq = []
+
+		if cmd.debug:
+			seqLength = debugIters
 				
 		reset_hidden = True
 
@@ -442,7 +447,7 @@ if cmd.loadModel != "none":
 ### Criterion, optimizer, and scheduler ###
 ########################################################################
 
-criterion = nn.MSELoss()
+criterion = nn.MSELoss(size_average = False)
 
 if cmd.optMethod == 'adam':
 	optimizer = optim.Adam(deepVO.parameters(), lr = cmd.lr, betas = (cmd.beta1, cmd.beta2), weight_decay = cmd.weightDecay, amsgrad = False)
