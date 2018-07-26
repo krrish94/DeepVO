@@ -16,7 +16,7 @@ parser.add_argument('-activation', help = 'Activation function to be used', type
 ################ Dataset ######################################
 parser.add_argument('-dataset', help = 'dataset to be used for training the network', default = 'KITTI')
 parser.add_argument('-outputParameterization', help = 'Parameterization of egomotion to be learnt by the \
-	network', type = str.lower, choices = ['default', 'quaternion', 'se3'], default = 'default')
+	network', type = str.lower, choices = ['default', 'quaternion', 'se3', 'euler'], default = 'default')
 
 ################### Hyperparameters ###########################
 parser.add_argument('-lr', help = 'Learning rate', type = float, default = 1e-4)

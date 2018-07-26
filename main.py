@@ -316,7 +316,8 @@ def validate(epoch, tag = 'valid'):
 		# seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
 		# seqLength = 41	# ???
 		# To store the entire estimated trajector
-		if cmd.outputParameterization == 'default': 
+		if cmd.outputParameterization == 'default' or cmd.outputParameterization == 'euler' or \
+		cmd.outputParameterization == 'se3': 
 			seq_traj = np.zeros([seqLength-1,6])
 		elif cmd.outputParameterization == 'quaternion':
 			seq_traj = np.zeros([seqLength-1,7])

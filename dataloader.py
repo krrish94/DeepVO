@@ -144,3 +144,13 @@ class Dataloader:
 
 				return inputTensor, quaternion, t
 
+			elif self.parameterization == 'euler':
+
+				R = pose2_wrt1[0:3, 0:3]
+				rx, ry, rz = lieFunctions.rotMat_to_euler(R, seq = 'xyz')
+				euler = (torch.FloatTensor([rx, ry, rz]).view(-1,3)).cuda()
+				print(euler)
+				# euler = (torch.FloatTensor([[rx, ry, rz]], dtype = torch.float32)).cuda()
+				t = (torch.from_numpy(pose2_wrt1[0:3,3]).view(-1,3)).float().cuda()
+
+				return inputTensor, euler, t
