@@ -54,6 +54,8 @@ parser.add_argument('-expID', help = 'experiment ID', default = 'tmp')
 parser.add_argument('-snapshot', help = 'when to take model snapshots', type = int, default = 5)
 parser.add_argument('-tensorboardX', help = 'Whether or not to use tensorboardX for \
 	visualization', type = bool, default = True)
+parser.add_argument('-debug', help = 'Run in debug mode, and execute 3 quick iterations per train \
+	loop. Used in quickly testing whether the code has a silly bug.', type = bool, default = False)
 
 ################### Reproducibility ##########################
 parser.add_argument('-randomseed', help = 'Seed for pseudorandom number generator', \

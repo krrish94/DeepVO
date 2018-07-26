@@ -2,19 +2,25 @@
 Main script: Train and test DeepVO on the KITTI odometry benchmark
 """
 
-
 from __future__ import print_function, division
 import itertools
 import random as rn
+
+# The following two lines are needed because of the conda version sets
+# 'Qt5Agg' as the default version for matplotlib.use(). The interpreter
+# throws a warning that says matplotlib.use('Agg') needs to be called
+# before importing pyplot. If the warning is ignored, this results in 
+# an error and the code crashes while storing plots (after validation).
 import matplotlib
 matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
 import time
 import torch
-from torch.autograd import Variable as V
+# from torch.autograd import Variable as V
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm, trange
@@ -30,19 +36,23 @@ import model
 cmd = args.arguments;
 
 # Seed the RNGs (ensure deterministic outputs)
-rn.seed(cmd.randomseed)
-np.random.seed(cmd.randomseed)
-torch.manual_seed(cmd.randomseed)
-torch.cuda.manual_seed(cmd.randomseed)
-torch.backends.cudnn.deterministic = True
+if cmd.isDeterministic:
+	rn.seed(cmd.randomseed)
+	np.random.seed(cmd.randomseed)
+	torch.manual_seed(cmd.randomseed)
+	torch.cuda.manual_seed(cmd.randomseed)
+	torch.backends.cudnn.deterministic = True
+
+# Debug parameters
+if cmd.debug is True:
+	debugIters = 3
+	cmd.epoch = 2
+
 
 # Intitialze the dataloader
 dataloader = dataloader.Dataloader(cmd.datadir)
 # Set the default tensor type
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
-
-# if not os.path.exists("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset):
-# 	os.makedirs("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset)
 
 basedir = os.path.dirname(os.path.realpath(__file__))
 if not os.path.exists(os.path.join(basedir, cmd.cachedir, cmd.dataset)):
@@ -129,6 +139,14 @@ def train(epoch, iters):
 	avgTrLoss = []
 	avgTotalLoss = []
 	
+	if cmd.debug:
+		numTraj = len(trajLength)
+		if numTraj > debugIters:
+			trajLength = trajLength[0:debugIters]
+		else:
+			firstElement = trajLength[0]
+			trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, debugIters) \
+				for x in [firstElement]))
 
 	for seq in trainSeqs:
 		# for tl in trajLength:
@@ -158,7 +176,8 @@ def train(epoch, iters):
 				batchsize_scale = torch.from_numpy(np.asarray([1. / tl], dtype = np.float32)).cuda()
 				loss_r += batchsize_scale * criterion(output_r, axis)
 				loss_t += batchsize_scale * cmd.scf * criterion(output_t,t)
-				loss += sum([loss_r, loss_t])
+				loss = loss_r
+				# loss += sum([loss_r, loss_t])
 				
 				# Soln 1: This works ###
 				# loss_r.backward(retain_graph = True)
@@ -230,8 +249,11 @@ def train(epoch, iters):
 
 			# For tensorboardX visualization
 			if cmd.tensorboardX is True:
-				writer.add_scalars('loss/train', {'rot_loss_train': itt_R_Loss, \
-					'trans_loss_train': itt_T_Loss,	'total_loss_train': itt_tot_Loss}, iters)
+				writer.add_scalar('loss/train/rot_loss_train', itt_R_Loss, iters)
+				writer.add_scalar('loss/train/trans_loss_train', itt_T_Loss, iters)
+				writer.add_scalar('loss/train/total_loss_train', itt_tot_Loss, iters)
+				# writer.add_scalars('loss/train', {'rot_loss_train': itt_R_Loss, \
+				# 	'trans_loss_train': itt_T_Loss,	'total_loss_train': itt_tot_Loss}, iters)
 
 					
 	# Save plot for loss					
@@ -398,7 +420,7 @@ if cmd.loadModel != "none":
 		checkpoint = torch.load(path)
 		flownetModel = checkpoint['state_dict']
 
-	deepVO = model.copyWeights(deepVO,flownetModel,cmd.modelType)
+	deepVO = model.copyWeights(deepVO, flownetModel, cmd.modelType)
 
 	# # For the linear layers of the model
 	# if cmd.initType == "xavier":
@@ -406,6 +428,14 @@ if cmd.loadModel != "none":
 
 	deepVO.cuda()
 	print(' Loaded weights !!')
+
+
+# # Helper function to print the norm of the gradient
+# def printgradnorm(self, grad_input, grad_output):
+
+# 	print('Inside ' + self.__class__.__name__ + ' backward')
+# 	print('grad_input_norm:', grad_input[0].norm().item())
+# deepVO.LSTM2.register_backward_hook(printgradnorm)
 
 
 ########################################################################
@@ -471,8 +501,11 @@ for epoch in range(cmd.nepochs):
 
 	# tensorboardX visualization
 	if cmd.tensorboardX is True:
-		writer.add_scalars('loss/val', {'rot_loss_val': np.mean(r_valLoss), \
-			'trans_loss_val': np.mean(t_valLoss), 'total_loss_val': np.mean(total_valLoss)}, iters)
+		writer.add_scalar('loss/val/rot_loss_val', np.mean(r_valLoss), iters)
+		writer.add_scalar('loss/val/trans_loss_val', np.mean(t_valLoss), iters)
+		writer.add_scalar('loss/val/total_loss_val', np.mean(total_valLoss), iters)
+		# writer.add_scalars('loss/val', {'rot_loss_val': np.mean(r_valLoss), \
+		# 	'trans_loss_val': np.mean(t_valLoss), 'total_loss_val': np.mean(total_valLoss)}, iters)
 
 	# After all the epochs plot the translation and rotation loss  w.r.t. epochs
 	fig_r,ax_r = plt.subplots(1)

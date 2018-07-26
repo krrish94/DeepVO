@@ -150,6 +150,7 @@ class Net_DeepVO_WOB(nn.Module):
 		self.c2 = self.c2.detach()
 
 
+
 class Net_DeepVO_WB(nn.Module):
 	def __init__(self):
 		super(Net_DeepVO_WB, self).__init__()
@@ -256,7 +257,7 @@ class Net_DeepVO_WB(nn.Module):
 
 def copyWeights(cnn,weights,flag):
 	# copy caffe weight or the checkpoint ones without batchnorm
-	if flag !='checkpoint_wb':
+	if flag != 'checkpoint_wb':
 		cnn.conv1.weight.data = weights["conv1.0.weight"]
 		cnn.conv1.bias.data = weights["conv1.0.bias"]
 
