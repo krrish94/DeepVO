@@ -27,10 +27,10 @@ from tqdm import tqdm, trange
 
 # Other project files with definitions
 import args
-from curriculum import Curriculum
-import dataloader
+from Curriculum import Curriculum
+from DataLoader import DataLoader
 from drawPlot import plotSequences
-import model
+import Model
 
 # Get the commandline arguements
 cmd = args.arguments;
@@ -50,7 +50,7 @@ if cmd.debug is True:
 
 
 # Intitialze the dataloader
-dataloader = dataloader.Dataloader(cmd.datadir, parameterization = cmd.outputParameterization)
+dataLoader = DataLoader(cmd.datadir, parameterization = cmd.outputParameterization)
 # Set the default tensor type
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
@@ -72,7 +72,7 @@ if not os.path.exists(os.path.join(expDir, 'plots', 'traj')):
 if not os.path.exists(os.path.join(expDir, 'plots', 'loss')):
 	os.makedirs(os.path.join(expDir, 'plots', 'loss'))
 	print('Created dir: ', os.path.join(expDir, 'plots', 'loss'))
-for seq in dataloader.total_seqs_KITTI:
+for seq in dataLoader.total_seqs_KITTI:
 	if not os.path.exists(os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2))):
 		os.makedirs(os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2)))
 		print('Created dir: ', os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2)))
@@ -85,7 +85,7 @@ for seq in dataloader.total_seqs_KITTI:
 #     os.makedirs("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset +"/" + cmd.expID + "/plots/traj")
 #     os.makedirs("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset +"/" + cmd.expID + "/plots/loss")
 	
-#     for seq in dataloader.total_seqs_KITTI:
+#     for seq in dataLoader.total_seqs_KITTI:
 #     	os.makedirs("/u/sharmasa/Documents/DeepVO/exp/" + cmd.dataset + "/" + cmd.expID + "/plots/traj/" + str(seq).zfill(2))
 
 
@@ -120,8 +120,8 @@ def train(epoch, iters):
 	#Switching to train mode
 	deepVO.train()
 	
-	trainSeqs = dataloader.train_seqs_KITTI
-	# trajLength = list(range(dataloader.minFrame_KITTI, dataloader.maxFrame_KITTI, \
+	trainSeqs = dataLoader.train_seqs_KITTI
+	# trajLength = list(range(dataLoader.minFrame_KITTI, dataLoader.maxFrame_KITTI, \
 	# 	rn.randint(5, 20)))
 	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
 	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100)) for x in [curriculum.cur_seqlen])
@@ -159,7 +159,7 @@ def train(epoch, iters):
 		# for tl in trajLength:
 		for tl in tqdm(trajLength, unit = 'seqs'):
 			# get a random subsequence from 'seq' of length 'fl' : starting index, ending index
-			stFrm, enFrm = dataloader.getSubsequence(seq, tl, cmd.dataset)
+			stFrm, enFrm = dataLoader.getSubsequence(seq, tl, cmd.dataset)
 			# itterate over this subsequence and get the frame data.
 			reset_hidden = True
 
@@ -173,7 +173,7 @@ def train(epoch, iters):
 			loss = torch.zeros(1, dtype = torch.float32).cuda()
 			for frm1 in range(stFrm, enFrm):
 
-				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
+				inp, axis, t = dataLoader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
 				
 				# Forward, compute loss and backprop
 				# deepVO.zero_grad()					
@@ -250,7 +250,7 @@ def train(epoch, iters):
 				else:
 					l2_reg = l2_reg + W.norm(2)
 
-			l2_reg = cmd.l * l2_reg
+			l2_reg = cmd.gamma * l2_reg
 			loss = sum([l2_reg,loss])
 				
 			loss.backward()
@@ -309,9 +309,9 @@ def validate(epoch, tag = 'valid'):
 
 	# In validation will predicit the loss between every two successive frames in all the training / validation sequences.
 	if tag == 'train':
-		validSeqs = dataloader.train_seqs_KITTI
+		validSeqs = dataLoader.train_seqs_KITTI
 	else:
-		validSeqs = dataloader.test_seqs_KITTI
+		validSeqs = dataLoader.test_seqs_KITTI
 
 	# For the entire validation set
 	avgRotLoss = []
@@ -345,7 +345,7 @@ def validate(epoch, tag = 'valid'):
 		# for frame1 in trange(seqLength-1):
 		for frame1 in trange(39):	# ???
 
-			inp, axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
+			inp, axis,t = dataLoader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
 			
 			output_r, output_t = deepVO.forward(inp, reset_hidden)
 
@@ -371,7 +371,8 @@ def validate(epoch, tag = 'valid'):
 
 		# Plot the trajectory of that sequence
 		if tag == "valid":
-			plotSequences(expDir, seq, seqLength, seq_traj, cmd.dataset, cmd)
+			# plotSequences(expDir, seq, seqLength, seq_traj, cmd.dataset, cmd)
+			pass
 
 
 		# Save the trajectory to text file of that sequence
@@ -415,13 +416,13 @@ def validate(epoch, tag = 'valid'):
 # Get the definition of the model
 if cmd.modelType !="checkpoint_wb":
 # Model definition without batchnorm
-	deepVO = model.Net_DeepVO_WOB(activation = cmd.activation, \
+	deepVO = Model.Net_DeepVO_WOB(activation = cmd.activation, \
 		parameterization = cmd.outputParameterization)
 
 else:
 
 	# Model definition with batchnorm
-	deepVO = model.Net_DeepVO_WB()
+	deepVO = Model.Net_DeepVO_WB()
 
 # Initialize weights (Xavier)
 deepVO.init_weights()
@@ -447,7 +448,7 @@ if cmd.loadModel != "none":
 		checkpoint = torch.load(path)
 		flownetModel = checkpoint['state_dict']
 
-	deepVO = model.copyWeights(deepVO, flownetModel, cmd.modelType)
+	deepVO = Model.copyWeights(deepVO, flownetModel, cmd.modelType)
 
 	# # For the linear layers of the model
 	# if cmd.initType == "xavier":
