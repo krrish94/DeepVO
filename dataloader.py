@@ -65,8 +65,10 @@ class Dataloader:
 			seqLength = len(os.listdir(os.path.join(self.datadir, 'sequences', str(seq).zfill(2), \
 				'image_2')))
 
-		st_frm = rn.randint(0, seqLength-tl)
-		end_frm = st_frm + tl - 1;
+		# st_frm = rn.randint(0, seqLength-tl)
+		# end_frm = st_frm + tl - 1;
+		st_frm = 0		# ???
+		end_frm = 39	# ???
 		return st_frm, end_frm
 
 

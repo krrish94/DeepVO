@@ -125,9 +125,13 @@ def train(epoch, iters):
 	# 	rn.randint(5, 20)))
 	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100) for x in [20]))
 	# trajLength = list(itertools.chain.from_iterable(itertools.repeat(x, 100)) for x in [curriculum.cur_seqlen])
+	
+	# ???
 	trajLength = [curriculum.cur_seqlen for i in range(100)]
 	if curriculum.cur_seqlen > curriculum.min_frames:
 		trajLength += list(np.random.randint(curriculum.min_frames, curriculum.cur_seqlen, size = 50))
+
+	trajLength = [40 for i in range(50)]	# ???
 
 	rn.shuffle(trainSeqs)
 	rn.shuffle(trajLength)
@@ -170,16 +174,14 @@ def train(epoch, iters):
 			for frm1 in range(stFrm, enFrm):
 
 				inp, axis, t = dataloader.getPairFrameInfo(frm1, frm1+1, seq, cmd.dataset)
-				# axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
-				# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
 				
 				# Forward, compute loss and backprop
 				# deepVO.zero_grad()					
 				output_r, output_t = deepVO.forward(inp, reset_hidden)
 				
 				batchsize_scale = torch.from_numpy(np.asarray([1. / tl], dtype = np.float32)).cuda()
-				loss_r += batchsize_scale * criterion(output_r, axis)
-				loss_t += batchsize_scale * cmd.scf * criterion(output_t,t)
+				loss_r += batchsize_scale * cmd.scf * criterion(output_r, axis)
+				loss_t += batchsize_scale * criterion(output_t,t)
 				# loss = (1. / cmd.scf) * loss_t
 				loss += sum([loss_r, loss_t])
 				
@@ -313,9 +315,8 @@ def validate(epoch, tag = 'valid'):
 	for seq in tqdm(validSeqs, unit = 'sequences'):
 
 		seqLength = len(os.listdir(os.path.join(cmd.datadir, 'sequences', str(seq).zfill(2), 'image_2')))
-		# seqLength = len(os.listdir("/data/milatmp1/sharmasa/"+ cmd.dataset + "/dataset/sequences/" + str(seq).zfill(2) + "/image_2/"))
-		# seqLength = 41	# ???
-		# To store the entire estimated trajector
+		
+		# To store the entire estimated trajectory
 		if cmd.outputParameterization == 'default' or cmd.outputParameterization == 'euler' or \
 		cmd.outputParameterization == 'se3': 
 			seq_traj = np.zeros([seqLength-1,6])
@@ -332,11 +333,10 @@ def validate(epoch, tag = 'valid'):
 				
 		reset_hidden = True
 
-		for frame1 in trange(seqLength-1):
+		# for frame1 in trange(seqLength-1):
+		for frame1 in trange(39):	# ???
 
-			inp,axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
-			# axis = torch.tensor([[1.0, 1.0, 1.0]])	# ???
-			# t = torch.tensor([[1.0, 1.0, 1.0]])		# ???
+			inp, axis,t = dataloader.getPairFrameInfo(frame1, frame1+1, seq,cmd.dataset)
 			
 			output_r, output_t = deepVO.forward(inp, reset_hidden)
 

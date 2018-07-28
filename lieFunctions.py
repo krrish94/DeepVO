@@ -169,7 +169,7 @@ def rotMat_to_euler(M, cy_thresh = None, seq = 'zyx'):
 	return z, y, x
 
 
-def euler_to_rotMat(z = 0, y = 0, x = 0, isRadian = True):
+def euler_to_rotMat(z = 0, y = 0, x = 0, isRadian = True, seq = 'zyx'):
 	''' Return matrix for rotations around z, y and x axes
 	Uses the z, then y, then x convention above
 	Parameters
@@ -230,6 +230,9 @@ def euler_to_rotMat(z = 0, y = 0, x = 0, isRadian = True):
 	looking along the axis of rotation from positive to negative.
 	'''
 
+	if seq != 'xyz' and seq != 'zyx':
+		raise Exception('Sequence not recognized')
+
 	if not isRadian:
 		z = ((np.pi)/180.) * z
 		y = ((np.pi)/180.) * y
@@ -239,27 +242,58 @@ def euler_to_rotMat(z = 0, y = 0, x = 0, isRadian = True):
 	assert x>=(-np.pi) and x < np.pi, 'Inapprorpriate x: %f' % x    
 
 	Ms = []
-	if z:
-			cosz = np.cos(z)
-			sinz = np.sin(z)
-			Ms.append(np.array(
-							[[cosz, -sinz, 0],
-							 [sinz, cosz, 0],
-							 [0, 0, 1]]))
-	if y:
-			cosy = np.cos(y)
-			siny = np.sin(y)
-			Ms.append(np.array(
-							[[cosy, 0, siny],
-							 [0, 1, 0],
-							 [-siny, 0, cosy]]))
-	if x:
-			cosx = np.cos(x)
-			sinx = np.sin(x)
-			Ms.append(np.array(
-							[[1, 0, 0],
-							 [0, cosx, -sinx],
-							 [0, sinx, cosx]]))
-	if Ms:
-			return functools.reduce(np.dot, Ms[::-1])
-	return np.eye(3)
+
+	if seq == 'zyx':
+
+		if z:
+				cosz = np.cos(z)
+				sinz = np.sin(z)
+				Ms.append(np.array(
+								[[cosz, -sinz, 0],
+								 [sinz, cosz, 0],
+								 [0, 0, 1]]))
+		if y:
+				cosy = np.cos(y)
+				siny = np.sin(y)
+				Ms.append(np.array(
+								[[cosy, 0, siny],
+								 [0, 1, 0],
+								 [-siny, 0, cosy]]))
+		if x:
+				cosx = np.cos(x)
+				sinx = np.sin(x)
+				Ms.append(np.array(
+								[[1, 0, 0],
+								 [0, cosx, -sinx],
+								 [0, sinx, cosx]]))
+		if Ms:
+				return functools.reduce(np.dot, Ms[::-1])
+		return np.eye(3)
+
+	elif seq == 'xyz':
+
+		if x:
+				cosx = np.cos(x)
+				sinx = np.sin(x)
+				Ms.append(np.array(
+								[[1, 0, 0],
+								 [0, cosx, -sinx],
+								 [0, sinx, cosx]]))
+		if y:
+				cosy = np.cos(y)
+				siny = np.sin(y)
+				Ms.append(np.array(
+								[[cosy, 0, siny],
+								 [0, 1, 0],
+								 [-siny, 0, cosy]]))
+		if z:
+				cosz = np.cos(z)
+				sinz = np.sin(z)
+				Ms.append(np.array(
+								[[cosz, -sinz, 0],
+								 [sinz, cosz, 0],
+								 [0, 0, 1]]))
+
+		if Ms:
+				return functools.reduce(np.dot, Ms[::-1])
+		return np.eye(3)

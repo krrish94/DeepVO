@@ -38,8 +38,8 @@ class Net_DeepVO_WOB(nn.Module):
 		self.c2 = torch.zeros(1, 128)
 		
 		# FC
-		# self.fc1 = nn.Linear(1024,128)
-		self.fc1 = nn.Linear(128, 32)
+		self.fc1 = nn.Linear(1024,32)
+		# self.fc1 = nn.Linear(128, 32)	# ???
 		if self.parameterization == 'quaternion':
 			self.fc_rot = nn.Linear(32, 4)
 		else:
@@ -135,12 +135,12 @@ class Net_DeepVO_WOB(nn.Module):
 		
 		
 		self.h1, self.c1 = self.LSTM1(x, (self.h1, self.c1))
-		self.h2, self.c2 = self.LSTM2(self.h1, (self.h2, self.c2))
+		# self.h2, self.c2 = self.LSTM2(self.h1, (self.h2, self.c2))	# ???
 
 		if self.activation == 'relu':
-			output_fc1 = (F.relu(self.fc1(self.h2)))
+			output_fc1 = (F.relu(self.fc1(self.h1)))	# ???
 		elif self.activation == 'selu':
-			output_fc1 = (F.selu(self.fc1(self.h2)))
+			output_fc1 = (F.selu(self.fc1(self.h1)))	# ???
 		
 		output_rot = self.fc_rot(output_fc1)
 		output_trans = self.fc_trans(output_fc1)
@@ -152,8 +152,8 @@ class Net_DeepVO_WOB(nn.Module):
 
 		self.h1 = self.h1.detach()
 		self.c1 = self.c1.detach()
-		self.h2 = self.h2.detach()
-		self.c2 = self.c2.detach()
+		# self.h2 = self.h2.detach()	# ???
+		# self.c2 = self.c2.detach()	# ???
 
 
 
