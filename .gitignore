@@ -7,5 +7,7 @@ exp/*/*
 cache/*
 slurm-*.out
 runs/*
-matlab/*.png
+matlab/*
 *.png
+unittests/*
+__pycache__/*
