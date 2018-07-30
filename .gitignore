@@ -9,5 +9,4 @@ slurm-*.out
 runs/*
 matlab/*
 *.png
-unittests/*
 __pycache__/*
