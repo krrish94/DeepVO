@@ -40,8 +40,8 @@ parser.add_argument('-nepochs', help = 'Number of epochs', type = int, default =
 parser.add_argument('-trainBatch', help = 'train batch size', type = int, default = 1)
 parser.add_argument('-validBatch', help = 'valid batch size', type = int, default = 1)
 
-parser.add_argument('-scf', help = 'Scaling factor for the translation loss terms', \
-	type = float, default = 0.01)
+parser.add_argument('-scf', help = 'Scaling factor for the rotation loss terms', \
+	type = float, default = 100)
 parser.add_argument('-gamma', help = 'For L2 regularization', \
 	type = float, default = 0.0)
 

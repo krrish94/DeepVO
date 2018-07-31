@@ -7,7 +7,7 @@ from skimage import io
 import torch
 from torch.utils.data import Dataset
 
-# Class for visual odometry datasets
+# Class for providing an iterator for the KITTI visual odometry dataset
 class KITTIDataset(Dataset):
 
 	# Constructor
@@ -114,8 +114,8 @@ class KITTIDataset(Dataset):
 		# Directory containing images for the current sequence
 		curImgDir = os.path.join(self.imgDir, str(seqIdx).zfill(2), 'image_2')
 		# Read in the corresponding images
-		print(os.path.join(curImgDir, str(frame1).zfill(6) + '.png'))
-		print(os.path.join(curImgDir, str(frame2).zfill(6) + '.png'))
+		# print(os.path.join(curImgDir, str(frame1).zfill(6) + '.png'))
+		# print(os.path.join(curImgDir, str(frame2).zfill(6) + '.png'))
 		img1 = smc.imread(os.path.join(curImgDir, str(frame1).zfill(6) + '.png'), mode = 'RGB')
 		img2 = smc.imread(os.path.join(curImgDir, str(frame2).zfill(6) + '.png'), mode = 'RGB')
 		# Preprocess : returned after mean subtraction, resize and permute to N x C x W x H dims
@@ -144,17 +144,17 @@ class KITTIDataset(Dataset):
 		# Default parameterization: representation rotations as axis-angle vectors
 		if self.parameterization == 'default':
 			axisAngle = (torch.from_numpy(np.asarray(rotMat_to_axisAngle(R))).view(-1,3)).float().cuda()
-			return inputTensor, axisAngle, t
+			return inputTensor, axisAngle, t, seqIdx, frame1, frame2, endOfSequence
 		# Quaternion parameterization: representation rotations as quaternions
 		elif self.parameterization == 'quaternion':
 			quat = np.asarray(rotMat_to_quat(R)).reshape((1,4))
 			quaternion = (torch.from_numpy(quat).view(-1,4)).float().cuda()
-			return inputTensor, quaternion, t
+			return inputTensor, quaternion, t, seqIdx, frame1, frame2, endOfSequence
 		# Euler parameterization: representation rotations as Euler angles
 		elif self.parameterization == 'euler':
 			rx, ry, rz = rotMat_to_euler(R, seq = 'xyz')
 			euler = (torch.FloatTensor([rx, ry, rz]).view(-1,3)).cuda()
-			return inputTensor, euler, t
+			return inputTensor, euler, t, seqIdx, frame1, frame2, endOfSequence
 
 		# return (seqIdx, frame1, frame2)
 

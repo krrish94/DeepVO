@@ -253,18 +253,18 @@ class DeepVO(nn.Module):
 	def init_weights(self):
 		for m in self.modules():
 			if isinstance(m, nn.Linear):
-				print('# Linear')
+				# print('# Linear')
 				nn.init.xavier_normal_(m.weight.data)
 				if m.bias is not None:
 					m.bias.data.zero_()
 			if isinstance(m, nn.Conv2d):
-				print('$ Conv2d')
+				# print('$ Conv2d')
 				n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
 				m.weight.data.normal_(0, math.sqrt(2. / n))
 				if m.bias is not None:
 					m.bias.data.zero_()
 			if isinstance(m, nn.LSTMCell):
-				print('% LSTMCell')
+				# print('% LSTMCell')
 				for name, param in m.named_parameters():
 					if 'weight' in name:
 						# nn.init.orthogonal(param)
@@ -289,6 +289,10 @@ class DeepVO(nn.Module):
 						n = bias.size(0)
 						start, end = n // 4, n // 2
 						bias.data[start:end].fill_(10.)
+
+		# Special weight_init for rotation FCs
+		self.fc_rot.weight.data = self.fc_rot.weight.data / 1000.
+
 
 
 	# Detach LSTM hidden state (i.e., output) and cellstate variables to free up the
@@ -316,7 +320,8 @@ class DeepVO(nn.Module):
 		
 		if self.use_flownet is True:
 
-			cnn = torch.load(self.flownet_weights_path)
+			flownet = torch.load(self.flownet_weights_path)
+			cnn = flownet['state_dict']
 		
 			if self.batchnorm is False:
 
