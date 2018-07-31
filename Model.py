@@ -158,7 +158,7 @@ class DeepVO(nn.Module):
 		self.fc_trans = nn.Linear(32,3)
 
 
-	def forward(self, x, reset_hidden = True):
+	def forward(self, x, reset_hidden = False):
 
 		if not self.batchnorm:
 
@@ -314,6 +314,15 @@ class DeepVO(nn.Module):
 		# self.c1 = self.c1.detach()
 		# self.h2 = self.h2.detach()
 		# self.c2 = self.c2.detach()
+
+
+	def reset_LSTM_hidden(self):
+
+		for i in range(self.numLSTMCells):
+			setattr(self, self.lstm_output_var_name.format(i), \
+				torch.zeros(1, self.hidden_units_LSTM[i]))
+			setattr(self, self.lstm_cellstate_var_name.format(i), \
+				torch.zeros(1, self.hidden_units_LSTM[i]))
 
 
 	def load_flownet_weights(self):

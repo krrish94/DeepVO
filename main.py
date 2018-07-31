@@ -91,18 +91,22 @@ if cmd.tensorboardX is True:
 ########################################################################
 
 # Get the definition of the model
-if cmd.modelType != 'checkpoint_wb':
-# Model definition without batchnorm
+if cmd.modelType == 'flownet' or cmd.modelType is None:
+	# Model definition without batchnorm
 	deepVO = DeepVO(activation = cmd.activation, parameterization = cmd.outputParameterization)
-else:
+elif cmd.modelType == 'flownet_batchnorm':
 	# Model definition with batchnorm
 	deepVO = DeepVO(activation = cmd.activation, parameterization = cmd.outputParameterization, \
 		batchnorm = True, flownet_weights_path = cmd.loadModel)
 
-# Initialize weights for fully connected layers and for LSTMCells
-deepVO.init_weights()
-# CUDAfy
-deepVO.cuda()
+# Load a pretrained DeepVO model
+if cmd.modelType == 'deepvo':
+	deepVO = torch.load(cmd.loadModel)
+else:
+	# Initialize weights for fully connected layers and for LSTMCells
+	deepVO.init_weights()
+	# CUDAfy
+	deepVO.cuda()
 print('Loaded! Good to launch!')
 
 
@@ -131,6 +135,13 @@ if cmd.lrScheduler is not None:
 ###  Main loop ###
 ########################################################################
 
+rotLosses_train = []
+transLosses_train = []
+totalLosses_train = []
+rotLosses_val = []
+transLosses_val = []
+totalLosses_val = []
+
 for epoch in range(cmd.nepochs):
 
 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
@@ -145,52 +156,55 @@ for epoch in range(cmd.nepochs):
 		scheduler = None, scaleFactor = cmd.scf)
 
 	# Training loop
-	rotLosses_train, transLosses_train, totalLosses_train = trainer.train()
+	rotLosses_train_cur, transLosses_train_cur, totalLosses_train_cur = trainer.train()
+
+	rotLosses_train += rotLosses_train_cur
+	transLosses_train += transLosses_train_cur
+	totalLosses_train += totalLosses_train_cur
 
 	# Learning rate scheduler, if specified
 	if cmd.lrScheduler is not None:
 		scheduler.step()
 
+	# Snapshot
+	if epoch % cmd.snapshot == 0 or epoch == cmd.nepochs - 1:
+		print('Saving model after epoch', epoch, '...')
+		torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'model' + str(epoch).zfill(3) + '.pt'))
+
 	# Validation loop
-	rotLosses_val, transLosses_val, totalLosses_val = trainer.validate()
+	rotLosses_val_cur, transLosses_val_cur, totalLosses_val_cur = trainer.validate()
 
-# # Initialize a quadratic curriculum class
-# curriculum = Curriculum(good_loss = 5e-3, min_frames = 10, max_frames = 60, \
-# 	curriculum_type = 'quadratic')
+	rotLosses_val += rotLosses_val_cur
+	transLosses_val += transLosses_val_cur
+	totalLosses_val += totalLosses_val_cur
 
-# # Number of iterations elapsed (for ease of visualization using tensorboardX)
-# iters = 0
+	if cmd.tensorboardX is True:
+		writer.add_scalar('loss/train/rot_loss_train', np.mean(rotLosses_train), trainer.iters)
+		writer.add_scalar('loss/train/trans_loss_train', np.mean(transLosses_train), trainer.iters)
+		writer.add_scalar('loss/train/total_loss_train', np.mean(totalLosses_train), trainer.iters)
+		writer.add_scalar('loss/train/rot_loss_val', np.mean(rotLosses_val), trainer.iters)
+		writer.add_scalar('loss/train/trans_loss_val', np.mean(transLosses_val), trainer.iters)
+		writer.add_scalar('loss/train/total_loss_val', np.mean(totalLosses_val), trainer.iters)
 
-# for epoch in range(cmd.nepochs):
+	# Save training curves
+	fig, ax = plt.subplots(1)
+	ax.plot(range(len(rotLosses_train)), rotLosses_train, 'r', label = 'rot_train')
+	ax.plot(range(len(transLosses_train)), transLosses_train, 'g', label = 'trans_train')
+	ax.plot(range(len(totalLosses_train)), totalLosses_train, 'b', label = 'total_train')
+	ax.legend()
+	plt.ylabel('Loss')
+	plt.xlabel('Batch #')
+	fig.savefig(os.path.join(cmd.expDir, 'loss_train_' + str(epoch).zfill(3)))
 
-# 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
-	
-# 	# Average loss over one training epoch	
+	fig, ax = plt.subplots(1)
+	ax.plot(range(len(rotLosses_val)), rotLosses_val, 'r', label = 'rot_train')
+	ax.plot(range(len(transLosses_val)), transLosses_val, 'g', label = 'trans_val')
+	ax.plot(range(len(totalLosses_val)), totalLosses_val, 'b', label = 'total_val')
+	ax.legend()
+	plt.ylabel('Loss')
+	plt.xlabel('Batch #')
+	fig.savefig(os.path.join(cmd.expDir, 'loss_val_' + str(epoch).zfill(3)))
 
-# 	r_trLoss , t_trLoss, total_trLoss, iters = train(epoch+1, iters)
-# 	r_tr.append(r_trLoss)
-# 	t_tr.append(t_trLoss)
-# 	totalLoss_train.append(total_trLoss)
-
-# 	print('==> Validation (epoch: ' + str(epoch+1) + ')')
-# 	# Average loss over entire validation set, a list of loss for all sequences
-# 	r_valLoss, t_valLoss, total_valLoss = validate(epoch+1, 'valid')
-# 	r_val.append(np.mean(r_valLoss))
-# 	t_val.append(np.mean(t_valLoss))
-# 	totalLoss_val.append(np.mean(total_valLoss))
-
-# 	# Scheduler step, if applicable
-# 	if cmd.lrScheduler is not None:
-# 		scheduler.step()
-
-# 	# Curriculum step
-# 	curriculum.step(total_trLoss)
-
-# 	# tensorboardX visualization
-# 	if cmd.tensorboardX is True:
-# 		writer.add_scalar('loss/val/rot_loss_val', np.mean(r_valLoss), iters)
-# 		writer.add_scalar('loss/val/trans_loss_val', np.mean(t_valLoss), iters)
-# 		writer.add_scalar('loss/val/total_loss_val', np.mean(total_valLoss), iters)
 
 print('Done !!')
 

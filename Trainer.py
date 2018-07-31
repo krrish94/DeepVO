@@ -57,6 +57,9 @@ class Trainer():
 		# Flush gradient buffers before beginning training
 		self.model.zero_grad()
 
+		# Keep track of number of iters (useful for tensorboardX visualization)
+		self.iters = 0
+
 
 	# Train for one epoch
 	def train(self):
@@ -68,6 +71,9 @@ class Trainer():
 		if self.curEpoch >= self.maxEpochs:
 			print('Max epochs elapsed! Returning ...')
 			return
+
+		# Increment iters
+		self.iters += 1
 
 		# Variables to store stats
 		rotLosses = []
@@ -82,6 +88,11 @@ class Trainer():
 			numTrainIters = self.args.debugIters
 		else:
 			numTrainIters = len(self.train_set)
+
+		# Initialize a variable to hold the number of sampes in the current batch
+		# Here, 'batch' refers to the length of a subsequence that can be processed
+		# before performing a 'detach' operation
+		elapsedBatches = 0
 
 		# Run a pass of the dataset
 		for i in trange(numTrainIters):
@@ -113,8 +124,13 @@ class Trainer():
 			if self.args.debug is True:
 				if i == numTrainIters - 1:
 					endOfSeq = True
+
+			elapsedBatches += 1
 			
-			if endOfSeq is True:
+			# if endOfSeq is True:
+			if elapsedBatches >= self.args.trainBatch or endOfSeq is True:
+
+				elapsedBatches = 0
 				
 				if self.weightRegularizer is not None:
 					# Regularization for network weights
@@ -154,6 +170,10 @@ class Trainer():
 
 				# Flush gradient buffers for next forward pass
 				self.model.zero_grad()
+
+				# If it's the end of sequence, reset hidden states
+				if endOfSeq is True:
+					self.model.reset_LSTM_hidden()
 
 		# Return loss logs for further analysis
 		return rotLosses, transLosses, totalLosses

@@ -4,10 +4,10 @@ parser = argparse.ArgumentParser()
 
 ################ Model Options ################################
 parser.add_argument('-loadModel', help = 'Whether or not to load pretrained weights. \
-	If yes: then specify the path to the saved weights', default = 'none')
+	If yes: then specify the path to the saved weights', default = None)
 parser.add_argument('-modelType', help = 'Type of the model to be loaded : \
-	1. caffe |  2. checkpoint_wob | 3. checkpoint_wb', type = str.lower, \
-	choices = ['caffe', 'checkpoint_wb', 'checkpoint_wob'], default = 'none')
+	1. deepVO |  2. flownet | 3. flownet_batchnorm', type = str.lower, \
+	choices = ['deepvo', 'flownet', 'flownet_batchnorm'], default = None)
 parser.add_argument('-initType', help = 'Weight initialization for the linear layers', \
 	type = str.lower, choices = ['xavier'], default = 'xavier')
 parser.add_argument('-activation', help = 'Activation function to be used', type = str.lower, \
@@ -37,7 +37,7 @@ parser.add_argument('-lrScheduler', help = 'Learning rate scheduler', type = str
 	choices = ['cosine', 'plateau'])
 
 parser.add_argument('-nepochs', help = 'Number of epochs', type = int, default = 50)
-parser.add_argument('-trainBatch', help = 'train batch size', type = int, default = 1)
+parser.add_argument('-trainBatch', help = 'train batch size', type = int, default = 40)
 parser.add_argument('-validBatch', help = 'valid batch size', type = int, default = 1)
 
 parser.add_argument('-scf', help = 'Scaling factor for the rotation loss terms', \
