@@ -33,9 +33,9 @@ class DeepVO(nn.Module):
 		if dropout <= 0.0:
 			self.dropout = False
 		else:
-			# Specify the keep_ratio
+			# Specify the drop_ratio
 			self.dropout = True
-			self.keep_ratio = dropout
+			self.drop_ratio = dropout
 
 		# Number of LSTM Cells to be stacked
 		self.numLSTMCells = numLSTMCells
@@ -235,14 +235,22 @@ class DeepVO(nn.Module):
 				output_fc1 = F.relu(self.fc1(lstm_final_output))
 				
 				# output_fc1 = F.relu(self.fc1(self.h2))
-				output_fc2 = F.relu(self.fc2(output_fc1))
+				if self.dropout is True:
+					output_fc2 = F.dropout(F.relu(self.fc2(output_fc1)), p = self.drop_ratio, \
+						training = self.training)
+				else:
+					output_fc2 = F.relu(self.fc2(output_fc1))
 			elif self.activation == 'selu':
 				# output_fc1 = (F.selu(self.fc1(self.LSTMOutputs[self.numLSTMCells-1])))
 				
 				output_fc1 = F.selu(self.fc1(lstm_final_output))
 				
 				# output_fc1 = F.selu(self.fc1(self.h2))
-				output_fc2 = F.selu(self.fc2(output_fc1))
+				if self.dropout is True:
+					output_fc2 = F.dropout(F.selu(self.fc2(output_fc1)), p = self.drop_ratio, \
+						training = self.training)
+				else:
+					output_fc2 = F.selu(self.fc2(output_fc1))
 
 			output_rot = self.fc_rot(output_fc2)
 			output_trans = self.fc_trans(output_fc2)

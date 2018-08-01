@@ -1,6 +1,14 @@
 import argparse
 parser = argparse.ArgumentParser()
 
+# Custom FloatRange class, to check for float argument ranges
+class FloatRange(object):
+	def __init__(self, start, end):
+		self.start = start
+		self.end = end
+	def __eq__(self, other):
+		return self.start <= other <= self.end
+
 
 ################ Model Options ################################
 parser.add_argument('-loadModel', help = 'Whether or not to load pretrained weights. \
@@ -12,6 +20,8 @@ parser.add_argument('-initType', help = 'Weight initialization for the linear la
 	type = str.lower, choices = ['xavier'], default = 'xavier')
 parser.add_argument('-activation', help = 'Activation function to be used', type = str.lower, \
 	choices = ['relu', 'selu'], default = 'selu')
+parser.add_argument('-dropout', help = 'Drop ratio of dropout at penultimate linear layer, \
+	if dropout is to be used.', type = float, choices = [FloatRange(0.0, 1.0)])
 
 ################ Dataset ######################################
 parser.add_argument('-dataset', help = 'dataset to be used for training the network', default = 'KITTI')

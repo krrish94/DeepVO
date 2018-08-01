@@ -24,6 +24,7 @@ import args
 from Curriculum import Curriculum
 from KITTIDataset import KITTIDataset
 from Model import DeepVO
+from plotTrajectories import plotSequence
 from Trainer import Trainer
 
 
@@ -147,8 +148,14 @@ for epoch in range(cmd.nepochs):
 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 
 	# Create datasets for the current epoch
-	kitti_train = KITTIDataset(cmd.datadir, [1], [0], [40])
-	kitti_val = KITTIDataset(cmd.datadir, [1], [0], [40])
+	train_seq = [0, 1, 2, 8, 9]
+	train_startFrames = [0, 0, 0, 0, 0]
+	train_endFrames = [4540, 1100, 4660, 4070, 1590]
+	val_seq = [3, 4, 5, 6, 7, 10]
+	val_startFrames = [0, 0, 0, 0, 0, 0]
+	val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
+	kitti_train = KITTIDataset(cmd.datadir, train_seq, train_startFrames, train_endFrames)
+	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames)
 
 	# Initialize a trainer (Note that any accumulated gradients on the model are flushed
 	# upon creation of this Trainer object)
@@ -204,6 +211,18 @@ for epoch in range(cmd.nepochs):
 	plt.ylabel('Loss')
 	plt.xlabel('Batch #')
 	fig.savefig(os.path.join(cmd.expDir, 'loss_val_' + str(epoch).zfill(3)))
+
+	# Plot trajectories (validation sequences)
+	i = 0
+	for s in val_seq:
+		seqLen = val_endFrames[i] - val_startFrames[i]
+		trajFile = os.path.join(cmd.expDir, 'plots', 'traj', str(s).zfill(2), \
+			'traj_' + str(epoch).zfill(3) + '.txt')
+		if os.path.exists(trajFile):
+			traj = np.loadtxt(trajFile)
+			traj = traj[:,3:]
+			plotSequence(cmd.expDir, s, seqLen, traj, cmd.datadir, cmd, epoch)
+		i += 1
 
 
 print('Done !!')

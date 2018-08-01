@@ -1,4 +1,4 @@
-from liealgebra import axisAngle_to_rotMat
+from lieFunctions import axisAngle_to_rotMat
 import os
 import matplotlib
 matplotlib.use('Agg')
@@ -12,18 +12,21 @@ import warnings
 warnings.filterwarnings("ignore")
 	
 
-def getGroundTruthTrajectory(seq,seqLength,dataset):
+def getGroundTruthTrajectory(seq, seqLength, dataDir):
 	
 	cameraTraj = np.empty([seqLength,3])
-	poses = open("/data/milatmp1/sharmasa/"+ dataset + "/dataset/poses/" + str(seq).zfill(2) + ".txt").readlines()
+	# poses = open(os.path.join(dataDir, 'poses', str(seq).zfill(2) + '.txt'))
+	poses = np.loadtxt(os.path.join(dataDir, 'poses', str(seq).zfill(2) + '.txt'))
+	# poses = open("/data/milatmp1/sharmasa/"+ dataset + "/dataset/poses/" + str(seq).zfill(2) + ".txt").readlines()
 	for frame in range(seqLength):
-		pose = np.concatenate((np.asarray([(float(i)) for i in poses[frame].split(' ')]).reshape(3,4) , [[0.0,0.0,0.0,1.0]]), axis=0);
-		cameraTraj[frame,:] = np.transpose(pose[0:3,3]);
+		# pose = np.concatenate((np.asarray([(float(i)) for i in poses[frame].split(' ')]).reshape(3,4) , [[0.0,0.0,0.0,1.0]]), axis=0);
+		pose = np.concatenate((np.asarray(poses[frame]).reshape(3, 4), [[0., 0., 0., 1.]]), axis = 0)
+		cameraTraj[frame,:] = pose[0:3,3].T;
 
 	return cameraTraj;
 
 
-def plotSequences(expDir,seq,seqLength,trajectory,dataset,cmd):
+def plotSequence(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch):
 
 	T = np.eye(4);
 	estimatedCameraTraj = np.empty([seqLength,3])
@@ -50,7 +53,7 @@ def plotSequences(expDir,seq,seqLength,trajectory,dataset,cmd):
 		estimatedCameraTraj[frame+1] = np.transpose(T[0:3,3])
 
 	# Get the ground truth camera trajectory
-	gtCameraTraj = getGroundTruthTrajectory(seq,seqLength,dataset);
+	gtCameraTraj = getGroundTruthTrajectory(seq, seqLength, dataDir);
 
 	# Plot the estimated and groundtruth trajectories
 	x_gt = gtCameraTraj[:,0]
@@ -60,21 +63,22 @@ def plotSequences(expDir,seq,seqLength,trajectory,dataset,cmd):
 	z_est = estimatedCameraTraj[:,2]
 	
 	# Save plot
-	path = os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2))
-	currNumPlots = len(glob.glob1(path,"*.png"))
+	# path = os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2))
+	# currNumPlots = len(glob.glob1(path,"*.png"))
 
-	assert (currNumPlots%2==0)
+	# assert (currNumPlots%2==0)
 	fig,ax = plt.subplots(1)
 	ax.plot(x_gt,z_gt, 'c', label = "ground truth")
 	ax.plot(x_est,z_est, 'm', label= "estimated")
 	ax.legend()
-	fig.savefig(path + "/" + str(currNumPlots/2 + 1))
+	# fig.savefig(path + "/" + str(currNumPlots/2 + 1))
+	fig.savefig(os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2), 'traj_' + str(epoch).zfill(3)))
 
-	# To save only the predicted plot
-	fig_,ax_ = plt.subplots(1)
-	ax_.plot(x_est,z_est, 'm', label="estimated traj")
-	ax_.legend()
-	fig_.savefig(path + "/est_" + str(currNumPlots/2 + 1))
+	# # To save only the predicted plot
+	# fig_,ax_ = plt.subplots(1)
+	# ax_.plot(x_est,z_est, 'm', label="estimated traj")
+	# ax_.legend()
+	# fig_.savefig(path + "/est_" + str(currNumPlots/2 + 1))
 
 
 

@@ -160,7 +160,9 @@ class Trainer():
 				# Update parameters
 				self.optimizer.step()
 
-				# Detach LSTM hidden states
+				# If it's the end of sequence, reset hidden states
+				if endOfSeq is True:
+					self.model.reset_LSTM_hidden()
 				self.model.detach_LSTM_hidden()
 
 				# Reset loss variables
@@ -170,10 +172,6 @@ class Trainer():
 
 				# Flush gradient buffers for next forward pass
 				self.model.zero_grad()
-
-				# If it's the end of sequence, reset hidden states
-				if endOfSeq is True:
-					self.model.reset_LSTM_hidden()
 
 		# Return loss logs for further analysis
 		return rotLosses, transLosses, totalLosses
@@ -254,7 +252,11 @@ class Trainer():
 				# Reset variable, to store new trajectory later on
 				traj_pred = None
 				
-				# Detach LSTM hidden states
+				# # Detach LSTM hidden states
+				# self.model.detach_LSTM_hidden()
+
+				# Reset LSTM hidden states
+				self.model.reset_LSTM_hidden()
 				self.model.detach_LSTM_hidden()
 
 				# Reset loss variables
