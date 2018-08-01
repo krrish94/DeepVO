@@ -21,7 +21,6 @@ from tqdm import tqdm, trange
 
 # Other project files with definitions
 import args
-from Curriculum import Curriculum
 from KITTIDataset import KITTIDataset
 from Model import DeepVO
 from plotTrajectories import plotSequence
@@ -154,6 +153,12 @@ for epoch in range(cmd.nepochs):
 	val_seq = [3, 4, 5, 6, 7, 10]
 	val_startFrames = [0, 0, 0, 0, 0, 0]
 	val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
+	# train_seq = [1]
+	# train_startFrames = [0]
+	# train_endFrames = [40]
+	# val_seq = [1]
+	# val_startFrames = [0]
+	# val_endFrames = [40]
 	kitti_train = KITTIDataset(cmd.datadir, train_seq, train_startFrames, train_endFrames)
 	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames)
 
@@ -174,7 +179,9 @@ for epoch in range(cmd.nepochs):
 		scheduler.step()
 
 	# Snapshot
-	if epoch % cmd.snapshot == 0 or epoch == cmd.nepochs - 1:
+	if cmd.noSnapshot is True:
+		pass
+	elif epoch % cmd.snapshot == 0 or epoch == cmd.nepochs - 1:
 		print('Saving model after epoch', epoch, '...')
 		torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'model' + str(epoch).zfill(3) + '.pt'))
 
