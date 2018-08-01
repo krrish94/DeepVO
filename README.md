@@ -3,7 +3,9 @@
 > **Disclaimer:** This is not an official release. This implementation is based on the ICRA 2017 paper of the same title by Sen Wang, Ronald Clark, Hongkai Wen, and Niki Trigoni. We try to reproduce the results presented in the above paper, while incorporating our own interpretations of the approach, wherever needed.
 
 
-> *Implementation by:* *Sarthak Sharma* and [*Krishna Murthy*](https://krrish94.github.io)
+> *Implementation by:* [*Krishna Murthy*](https://krrish94.github.io) and [*Sarthak Sharma*](https://mila.quebec/en/person/sarthak-sharma/)
+
+> Pretrained models and results will be pushed in due course of time.
 
 ## Installation Instructions
 
