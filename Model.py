@@ -213,14 +213,14 @@ class DeepVO(nn.Module):
 			# 	x = (F.selu(self.conv5(x)))
 			# 	x = (F.selu(self.conv5_1(x)))
 			
-			x = (F.relu(self.conv1(x)))
-			x = (F.relu(self.conv2(x)))
-			x = (F.relu(self.conv3(x)))
-			x = (F.relu(self.conv3_1(x)))
-			x = (F.relu(self.conv4(x)))
-			x = (F.relu(self.conv4_1(x)))
-			x = (F.relu(self.conv5(x)))
-			x = (F.relu(self.conv5_1(x)))
+			x = (F.leaky_relu(self.conv1(x)))
+			x = (F.leaky_relu(self.conv2(x)))
+			x = (F.leaky_relu(self.conv3(x)))
+			x = (F.leaky_relu(self.conv3_1(x)))
+			x = (F.leaky_relu(self.conv4(x)))
+			x = (F.leaky_relu(self.conv4_1(x)))
+			x = (F.leaky_relu(self.conv5(x)))
+			x = (F.leaky_relu(self.conv5_1(x)))
 			
 			x = ((self.conv6(x))) # No relu at the last conv
 
@@ -328,8 +328,8 @@ class DeepVO(nn.Module):
 				# print('% LSTMCell')
 				for name, param in m.named_parameters():
 					if 'weight' in name:
-						# nn.init.orthogonal(param)
-						nn.init.xavier_normal_(param)
+						nn.init.orthogonal(param)
+						# nn.init.xavier_normal_(param)
 					elif 'bias' in name:
 						# Forget gate bias trick: Initially during training, it is often helpful
 						# to initialize the forget gate bias to a large value, to help information
