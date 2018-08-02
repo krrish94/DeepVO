@@ -9,11 +9,23 @@ from torch.autograd import Variable as V
 # DeepVO model
 class DeepVO(nn.Module):
 
-	def __init__(self, activation = 'relu', parameterization = 'default', batchnorm = False, \
+	def __init__(self, imageWidth, imageHeight, activation = 'relu', parameterization = 'default', batchnorm = False, \
 		dropout = 0.0, flownet_weights_path = None, numLSTMCells = 1, hidden_units_LSTM = None, \
 		numFC = 2, FC_dims = None):
 
 		super(DeepVO, self).__init__()
+
+		# Check if input image width and height are feasible
+		self.imageWidth = int(imageWidth)
+		self.imageHeight = int(imageHeight)
+		if self.imageWidth < 64 or self.imageHeight < 64:
+			raise ValueError('The width and height for an input image must be at least 64 px.')
+
+		# Compute the size of the LSTM input feature vector.
+		# There are 6 conv stages (some stages have >1 conv layers), which effectively reduce an 
+		# image to 1/64 th of its initial dimensions. Further, the final conv layer has 1024
+		# filters, hence, numConcatFeatures = 1024 * (wd/64) * (ht/64) = (wd * ht) / 4
+		self.numConcatFeatures = int((self.imageWidth * self.imageHeight) / 4)
 
 		# Activation functions to be used in the network
 		self.activation = activation
@@ -37,6 +49,10 @@ class DeepVO(nn.Module):
 			self.dropout = True
 			self.drop_ratio = dropout
 
+		self.numLSTMCells = numLSTMCells
+		self.hidden_units_LSTM = hidden_units_LSTM
+
+		"""
 		# Number of LSTM Cells to be stacked
 		self.numLSTMCells = numLSTMCells
 		if self.numLSTMCells < 1:
@@ -51,6 +67,7 @@ class DeepVO(nn.Module):
 			self.hidden_units_LSTM = hidden_units_LSTM
 		else:
 			self.hidden_units_LSTM = [1024 for i in range(self.numLSTMCells)]
+		"""
 
 		# TODO: complete this functionality block
 		# # Number of fully connected layers
@@ -105,6 +122,7 @@ class DeepVO(nn.Module):
 			self.conv5_1_bn = nn.BatchNorm2d(512)
 			self.conv6_bn = nn.BatchNorm2d(1024)
 
+		"""
 		# Create LSTMCell, output, and cellstate variables
 		self.lstm_var_name = 'lstm{}'
 		self.lstm_output_var_name = 'lstm_h{}'
@@ -121,6 +139,19 @@ class DeepVO(nn.Module):
 				torch.zeros(1, self.hidden_units_LSTM[i]))
 			setattr(self, self.lstm_cellstate_var_name.format(i), \
 				torch.zeros(1, self.hidden_units_LSTM[i]))
+		"""
+
+		if self.numLSTMCells == 1:
+			self.lstm1 = nn.LSTMCell(self.numConcatFeatures, self.hidden_units_LSTM[0])
+			self.h1 = torch.zeros(1, self.hidden_units_LSTM[0])
+			self.c1 = torch.zeros(1, self.hidden_units_LSTM[0])
+		else:
+			self.lstm1 = nn.LSTMCell(self.numConcatFeatures, self.hidden_units_LSTM[0])
+			self.lstm2 = nn.LSTMCell(self.hidden_units_LSTM[0], self.hidden_units_LSTM[1])
+			self.h1 = torch.zeros(1, self.hidden_units_LSTM[0])
+			self.c1 = torch.zeros(1, self.hidden_units_LSTM[0])
+			self.h2 = torch.zeros(1, self.hidden_units_LSTM[1])
+			self.c2 = torch.zeros(1, self.hidden_units_LSTM[1])
 
 		
 		# # Create variables for LSTM outputs and cellstates
@@ -163,44 +194,61 @@ class DeepVO(nn.Module):
 		if not self.batchnorm:
 
 			# Forward pass through the conv layers
-			if self.activation == 'relu':
-				x = (F.relu(self.conv1(x)))
-				x = (F.relu(self.conv2(x)))
-				x = (F.relu(self.conv3(x)))
-				x = (F.relu(self.conv3_1(x)))
-				x = (F.relu(self.conv4(x)))
-				x = (F.relu(self.conv4_1(x)))
-				x = (F.relu(self.conv5(x)))
-				x = (F.relu(self.conv5_1(x)))
-			elif self.activation == 'selu':
-				x = (F.selu(self.conv1(x)))
-				x = (F.selu(self.conv2(x)))
-				x = (F.selu(self.conv3(x)))
-				x = (F.selu(self.conv3_1(x)))
-				x = (F.selu(self.conv4(x)))
-				x = (F.selu(self.conv4_1(x)))
-				x = (F.selu(self.conv5(x)))
-				x = (F.selu(self.conv5_1(x)))
+			# if self.activation == 'relu':
+			# 	x = (F.relu(self.conv1(x)))
+			# 	x = (F.relu(self.conv2(x)))
+			# 	x = (F.relu(self.conv3(x)))
+			# 	x = (F.relu(self.conv3_1(x)))
+			# 	x = (F.relu(self.conv4(x)))
+			# 	x = (F.relu(self.conv4_1(x)))
+			# 	x = (F.relu(self.conv5(x)))
+			# 	x = (F.relu(self.conv5_1(x)))
+			# elif self.activation == 'selu':
+			# 	x = (F.selu(self.conv1(x)))
+			# 	x = (F.selu(self.conv2(x)))
+			# 	x = (F.selu(self.conv3(x)))
+			# 	x = (F.selu(self.conv3_1(x)))
+			# 	x = (F.selu(self.conv4(x)))
+			# 	x = (F.selu(self.conv4_1(x)))
+			# 	x = (F.selu(self.conv5(x)))
+			# 	x = (F.selu(self.conv5_1(x)))
+			
+			x = (F.relu(self.conv1(x)))
+			x = (F.relu(self.conv2(x)))
+			x = (F.relu(self.conv3(x)))
+			x = (F.relu(self.conv3_1(x)))
+			x = (F.relu(self.conv4(x)))
+			x = (F.relu(self.conv4_1(x)))
+			x = (F.relu(self.conv5(x)))
+			x = (F.relu(self.conv5_1(x)))
+			
 			x = ((self.conv6(x))) # No relu at the last conv
 
 			# Stacking the output from the final conv layer
-			x = x.view(-1, 20 * 6 * 1024)
+			x = x.view(-1, self.numConcatFeatures)
 
 			# If hidden state is to be reset, perform the operation
 			
+			"""
 			if reset_hidden is True:
 				for i in range(self.numLSTMCells):
 					setattr(self, self.lstm_output_var_name.format(i), \
 						torch.zeros(1, self.hidden_units_LSTM[i]))
 					setattr(self, self.lstm_cellstate_var_name.format(i), \
 						torch.zeros(1, self.hidden_units_LSTM[i]))
+			"""
 			
-			# if reset_hidden is True:
-			# 	for i in range(self.numLSTMCells):
-			# 		self.LSTMOutputs.append(torch.zeros(1, self.hidden_units_LSTM[i]))
-			# 		self.LSTMCellstates.append(torch.zeros(1, self.hidden_units_LSTM[i]))
-
+			if reset_hidden is True:
+				if self.numLSTMCells == 1:
+					self.h1 = torch.zeros(1, self.hidden_units_LSTM[0])
+					self.c1 = torch.zeros(1, self.hidden_units_LSTM[0])
+				else:
+					self.h1 = torch.zeros(1, self.hidden_units_LSTM[0])
+					self.c1 = torch.zeros(1, self.hidden_units_LSTM[0])
+					self.h2 = torch.zeros(1, self.hidden_units_LSTM[1])
+					self.c2 = torch.zeros(1, self.hidden_units_LSTM[1])
 			
+			"""
 			# Forward pass through the stack of LSTMs
 			for i in range(self.numLSTMCells):
 				cur_output = getattr(self, self.lstm_output_var_name.format(i))
@@ -212,28 +260,30 @@ class DeepVO(nn.Module):
 					cur_output, cur_cellstate = cur_lstmcell(prev_output, (cur_output, cur_cellstate))
 				prev_output = cur_output
 			lstm_final_output = getattr(self, self.lstm_output_var_name.format(self.numLSTMCells-1))
+			"""
 			
-			# self.LSTMOutputs[0], self.LSTMCellstates[0] = self.LSTMCells[0](x, \
-			# 	(self.LSTMOutputs[0], self.LSTMCellstates[0]))
-			# for i in range(1, self.numLSTMCells):
-			# 	self.LSTMOutputs[i], self.LSTMCellstates[i] = \
-			# 	self.LSTMCells[i](self.LSTMOutputs[i-1], \
-			# 		(self.LSTMOutputs[i], self.LSTMCellstates[i]))
 
 			# if reset_hidden is True:
 			# 	self.h1 = torch.zeros(1, 1024)
 			# 	self.c1 = torch.zeros(1, 1024)
 			# 	self.h2 = torch.zeros(1, 1024)
 			# 	self.c2 = torch.zeros(1, 1024)
-			# self.h1, self.c1 = self.lstm1(x, (self.h1, self.c1))
-			# self.h2, self.c2 = self.lstm2(self.h1, (self.h2, self.c2))
+			
+			if self.numLSTMCells == 1:
+				self.h1, self.c1 = self.lstm1(x, (self.h1, self.c1))
+			else:
+				self.h1, self.c1 = self.lstm1(x, (self.h1, self.c1))
+				self.h2, self.c2 = self.lstm2(self.h1, (self.h2, self.c2))
 
 			# Forward pass through the FC layers
 			if self.activation == 'relu':
-				# output_fc1 = (F.relu(self.fc1(self.LSTMOutputs[self.numLSTMCells-1])))
-				
+				"""
 				output_fc1 = F.relu(self.fc1(lstm_final_output))
-				
+				"""
+				if self.numLSTMCells == 1:
+					output_fc1 = F.relu(self.fc1(self.h1))
+				else:
+					output_fc1 = F.relu(self.fc1(self.h2))
 				# output_fc1 = F.relu(self.fc1(self.h2))
 				if self.dropout is True:
 					output_fc2 = F.dropout(F.relu(self.fc2(output_fc1)), p = self.drop_ratio, \
@@ -241,10 +291,13 @@ class DeepVO(nn.Module):
 				else:
 					output_fc2 = F.relu(self.fc2(output_fc1))
 			elif self.activation == 'selu':
-				# output_fc1 = (F.selu(self.fc1(self.LSTMOutputs[self.numLSTMCells-1])))
-				
+				"""
 				output_fc1 = F.selu(self.fc1(lstm_final_output))
-				
+				"""
+				if self.numLSTMCells == 1:
+					output_fc1 = F.selu(self.fc1(self.h1))
+				else:
+					output_fc1 = F.selu(self.fc1(self.h2))
 				# output_fc1 = F.selu(self.fc1(self.h2))
 				if self.dropout is True:
 					output_fc2 = F.dropout(F.selu(self.fc2(output_fc1)), p = self.drop_ratio, \
@@ -300,7 +353,7 @@ class DeepVO(nn.Module):
 
 		# Special weight_init for rotation FCs
 		self.fc_rot.weight.data = self.fc_rot.weight.data / 1000.
-
+		# self.fc_trans.weight.data = self.fc_trans.weight.data * 100.
 
 
 	# Detach LSTM hidden state (i.e., output) and cellstate variables to free up the
@@ -308,29 +361,42 @@ class DeepVO(nn.Module):
 	# detach is performed.
 	def detach_LSTM_hidden(self):
 
-		for i in range(self.numLSTMCells):
-			# cur_output = getattr(self, self.lstm_output_var_name.format(i))
-			# cur_cellstate = getattr(self, self.lstm_cellstate_var_name.format(i))
-			# cur_output = cur_output.detach()
-			# cur_cellstate = cur_cellstate.detach()
-			setattr(self, self.lstm_output_var_name.format(i), getattr(self, \
-				self.lstm_output_var_name.format(i)).detach())
-			setattr(self, self.lstm_cellstate_var_name.format(i), getattr(self, \
-				self.lstm_cellstate_var_name.format(i)).detach())
+		# for i in range(self.numLSTMCells):
+		# 	# cur_output = getattr(self, self.lstm_output_var_name.format(i))
+		# 	# cur_cellstate = getattr(self, self.lstm_cellstate_var_name.format(i))
+		# 	# cur_output = cur_output.detach()
+		# 	# cur_cellstate = cur_cellstate.detach()
+		# 	setattr(self, self.lstm_output_var_name.format(i), getattr(self, \
+		# 		self.lstm_output_var_name.format(i)).detach())
+		# 	setattr(self, self.lstm_cellstate_var_name.format(i), getattr(self, \
+		# 		self.lstm_cellstate_var_name.format(i)).detach())
 		
-		# self.h1 = self.h1.detach()
-		# self.c1 = self.c1.detach()
-		# self.h2 = self.h2.detach()
-		# self.c2 = self.c2.detach()
+		if self.numLSTMCells == 1:
+			self.h1 = self.h1.detach()
+			self.c1 = self.c1.detach()
+		else:
+			self.h1 = self.h1.detach()
+			self.c1 = self.c1.detach()
+			self.h2 = self.h2.detach()
+			self.c2 = self.c2.detach()
 
 
 	def reset_LSTM_hidden(self):
 
-		for i in range(self.numLSTMCells):
-			setattr(self, self.lstm_output_var_name.format(i), \
-				torch.zeros(1, self.hidden_units_LSTM[i]))
-			setattr(self, self.lstm_cellstate_var_name.format(i), \
-				torch.zeros(1, self.hidden_units_LSTM[i]))
+		# for i in range(self.numLSTMCells):
+		# 	setattr(self, self.lstm_output_var_name.format(i), \
+		# 		torch.zeros(1, self.hidden_units_LSTM[i]))
+		# 	setattr(self, self.lstm_cellstate_var_name.format(i), \
+		# 		torch.zeros(1, self.hidden_units_LSTM[i]))
+
+		if self.numLSTMCells == 1:
+			self.h1 = torch.zeros(1, self.hidden_units_LSTM[0])
+			self.c1 = torch.zeros(1, self.hidden_units_LSTM[0])
+		else:
+			self.h1 = torch.zeros(1, self.hidden_units_LSTM[0])
+			self.c1 = torch.zeros(1, self.hidden_units_LSTM[0])
+			self.h2 = torch.zeros(1, self.hidden_units_LSTM[1])
+			self.c2 = torch.zeros(1, self.hidden_units_LSTM[1])
 
 
 	def load_flownet_weights(self):

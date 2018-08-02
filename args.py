@@ -22,6 +22,10 @@ parser.add_argument('-activation', help = 'Activation function to be used', type
 	choices = ['relu', 'selu'], default = 'selu')
 parser.add_argument('-dropout', help = 'Drop ratio of dropout at penultimate linear layer, \
 	if dropout is to be used.', type = float, choices = [FloatRange(0.0, 1.0)])
+parser.add_argument('-numLSTMCells', help = 'Number of LSTM cells to stack together', type = int, \
+	default = 2)
+parser.add_argument('-imageWidth', help = 'Width of the input image', type = int, default = 1280)
+parser.add_argument('-imageHeight', help = 'Height of the input image', type = int, default = 384)
 
 ################ Dataset ######################################
 parser.add_argument('-dataset', help = 'dataset to be used for training the network', default = 'KITTI')
@@ -66,19 +70,28 @@ parser.add_argument('-datadir', help = 'Absolute path to the directory that hold
 ###### Experiments, Snapshots, and Visualization #############
 parser.add_argument('-expID', help = 'experiment ID', default = 'tmp')
 parser.add_argument('-snapshot', help = 'when to take model snapshots', type = int, default = 5)
-parser.add_argument('-noSnapshot', help = 'Set this to True when you do not want to save snapshots', \
-	type = bool, default = False)
+parser.add_argument('-snapshotStrategy', help = 'Strategy to save snapshots. Note that this has \
+	precedence over the -snapshot argument. 1. none: no snapshot at all | 2. default: as frequently \
+	as specified in -snapshot | 3. best: keep only the best performing model thus far', \
+	type = str.lower, choices = ['none', 'default', 'best'])
 parser.add_argument('-tensorboardX', help = 'Whether or not to use tensorboardX for \
 	visualization', type = bool, default = True)
+
+########### Debugging, Profiling, etc. #######################
 parser.add_argument('-debug', help = 'Run in debug mode, and execute 3 quick iterations per train \
 	loop. Used in quickly testing whether the code has a silly bug.', type = bool, default = False)
+parser.add_argument('-profileGPUUsage', help = 'Profiles GPU memory usage and prints it every \
+	train/val batch', type = bool, default = False)
+parser.add_argument('-sbatch', help = 'Replaces tqdm and print operations with file writes when \
+	True. Useful for reducing I/O when not running in interactive mode (eg. on clusters)', type = bool)
 
 ################### Reproducibility ##########################
 parser.add_argument('-randomseed', help = 'Seed for pseudorandom number generator', \
 	type = int, default = 12345)
 parser.add_argument('-isDeterministic', help = 'Whether or not the code should \
 	use the provided random seed and run deterministically', type = bool, default = False)
-parser.add_argument('-numworkers', help = 'Number of threads available to the DataLoader')
+parser.add_argument('-numworkers', help = 'Number of threads available to the DataLoader', \
+	type = int, default = 1)
 
 
 arguments = parser.parse_args()

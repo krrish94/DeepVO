@@ -12,7 +12,7 @@ class KITTIDataset(Dataset):
 
 	# Constructor
 	def __init__(self, KITTIBaseDir, sequences = None, startFrames = None, endFrames = None, \
-		parameterization = 'default'):
+		parameterization = 'default', width = 1280, height = 384):
 
 		# Path to base directory of the KITTI odometry dataset
 		# The base directory contains two directories: 'poses' and 'sequences'
@@ -38,8 +38,8 @@ class KITTIDataset(Dataset):
 		self.channelwiseStdDev = [1.0, 1.0, 1.0]
 
 		# Dimensions to be fed in the input
-		self.width = 1280
-		self.height = 384
+		self.width = width
+		self.height = height
 		self.channels = 3
 
 		# List of sequences that are part of the dataset

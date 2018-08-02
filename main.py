@@ -17,6 +17,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 from tqdm import tqdm, trange
 
 # Other project files with definitions
@@ -93,7 +94,8 @@ if cmd.tensorboardX is True:
 # Get the definition of the model
 if cmd.modelType == 'flownet' or cmd.modelType is None:
 	# Model definition without batchnorm
-	deepVO = DeepVO(activation = cmd.activation, parameterization = cmd.outputParameterization)
+	deepVO = DeepVO(cmd.imageWidth, cmd.imageHeight, activation = cmd.activation, parameterization = cmd.outputParameterization, \
+		numLSTMCells = cmd.numLSTMCells, hidden_units_LSTM = [1024, 1024])
 elif cmd.modelType == 'flownet_batchnorm':
 	# Model definition with batchnorm
 	deepVO = DeepVO(activation = cmd.activation, parameterization = cmd.outputParameterization, \
@@ -141,6 +143,7 @@ totalLosses_train = []
 rotLosses_val = []
 transLosses_val = []
 totalLosses_val = []
+bestValLoss = np.inf
 
 for epoch in range(cmd.nepochs):
 
@@ -159,15 +162,23 @@ for epoch in range(cmd.nepochs):
 	# val_seq = [1]
 	# val_startFrames = [0]
 	# val_endFrames = [40]
-	kitti_train = KITTIDataset(cmd.datadir, train_seq, train_startFrames, train_endFrames)
-	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames)
+	kitti_train = KITTIDataset(cmd.datadir, train_seq, train_startFrames, train_endFrames, \
+		width = cmd.imageWidth, height = cmd.imageHeight)
+	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames, \
+		width = cmd.imageWidth, height = cmd.imageHeight)
+
+	# dataloader_train = DataLoader(kitti_train, batch_size = 1, shuffle = False, \
+	# 	num_workers = cmd.numWorkers)
+	# dataloader_val = DataLoader(kitti_val, batch_size = 1, shuffle = False, \
+	# 	num_workers = cmd.numWorkers)
 
 	# Initialize a trainer (Note that any accumulated gradients on the model are flushed
 	# upon creation of this Trainer object)
 	trainer = Trainer(cmd, epoch, deepVO, kitti_train, kitti_val, criterion, optimizer, \
-		scheduler = None, scaleFactor = cmd.scf)
+		scheduler = None)
 
 	# Training loop
+	print('===> Training: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 	rotLosses_train_cur, transLosses_train_cur, totalLosses_train_cur = trainer.train()
 
 	rotLosses_train += rotLosses_train_cur
@@ -179,18 +190,28 @@ for epoch in range(cmd.nepochs):
 		scheduler.step()
 
 	# Snapshot
-	if cmd.noSnapshot is True:
+	if cmd.snapshotStrategy == 'default':
+		if epoch % cmd.snapshot == 0 or epoch == cmd.nepochs - 1:
+			print('Saving model after epoch', epoch, '...')
+			torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'model' + str(epoch).zfill(3) + '.pt'))
+	elif cmd.snapshotStrategy == 'best' or 'none':
+		# If we only want to save the best model, defer the decision
 		pass
-	elif epoch % cmd.snapshot == 0 or epoch == cmd.nepochs - 1:
-		print('Saving model after epoch', epoch, '...')
-		torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'model' + str(epoch).zfill(3) + '.pt'))
 
 	# Validation loop
+	print('===> Validation: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 	rotLosses_val_cur, transLosses_val_cur, totalLosses_val_cur = trainer.validate()
 
 	rotLosses_val += rotLosses_val_cur
 	transLosses_val += transLosses_val_cur
 	totalLosses_val += totalLosses_val_cur
+
+	# Snapshot (if using 'best' strategy)
+	if cmd.snapshotStrategy == 'best':
+		if np.mean(totalLosses_val_cur) <= bestValLoss:
+			bestValLoss = np.mean(totalLosses_val_cur)
+			print('Saving model after epoch', epoch, '...')
+			torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'best' + '.pt'))
 
 	if cmd.tensorboardX is True:
 		writer.add_scalar('loss/train/rot_loss_train', np.mean(rotLosses_train), trainer.iters)

@@ -2,12 +2,14 @@
 Trainer class. Handles training and validation
 """
 
+from helpers import get_gpu_memory_map
 from KITTIDataset import KITTIDataset
 from Model import DeepVO
 import numpy as np
 import os
 import sys
 import torch
+from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm, trange
@@ -16,7 +18,7 @@ from tqdm import tqdm, trange
 class Trainer():
 
 	def __init__(self, args, epoch, model, train_set, val_set, loss_fn, optimizer, scheduler = None, \
-		scaleFactor = 1., gradClip = None, weightRegularizer = None):
+		gradClip = None):
 
 
 		# Commandline arguments
@@ -38,8 +40,8 @@ class Trainer():
 		self.loss_fn = nn.MSELoss(reduction = 'sum')
 
 		# Variables to hold loss
-		self.loss_rot = torch.zeros(1, dtype = torch.float32).cuda()
-		self.loss_trans = torch.zeros(1, dtype = torch.float32).cuda()
+		self.loss_rot = Variable(torch.zeros(1, dtype = torch.float32).cuda(), requires_grad = False)
+		self.loss_trans = Variable(torch.zeros(1, dtype = torch.float32).cuda(), requires_grad = False)
 		self.loss = torch.zeros(1, dtype = torch.float32).cuda()
 
 		# Optimizer
@@ -47,12 +49,6 @@ class Trainer():
 
 		# Scheduler
 		self.scheduler = scheduler
-
-		# Multiplier for the rotation loss term
-		self.scaleFactor = scaleFactor
-
-		# Multiplier for weight regularizer
-		self.weightRegularizer = weightRegularizer
 
 		# Flush gradient buffers before beginning training
 		self.model.zero_grad()
@@ -94,8 +90,20 @@ class Trainer():
 		# before performing a 'detach' operation
 		elapsedBatches = 0
 
+		# Choose a generator (for iterating over the dataset, based on whether or not the 
+		# sbatch flag is set to True). If sbatch is True, we're probably running on a cluster
+		# and do not want an interactive output. So, could suppress tqdm and print statements
+		if self.args.sbatch is True:
+			gen = range(numTrainIters)
+		else:
+			gen = trange(numTrainIters)
+
 		# Run a pass of the dataset
-		for i in trange(numTrainIters):
+		for i in gen:
+
+			if self.args.profileGPUUsage is True:
+				gpu_memory_map = get_gpu_memory_map()
+				tqdm.write('GPU usage: ' + str(gpu_memory_map[0]), file = sys.stdout)
 
 			# Get the next frame
 			inp, rot_gt, trans_gt, _, _, _, endOfSeq = self.train_set[i]
@@ -104,14 +112,20 @@ class Trainer():
 			rot_pred, trans_pred = self.model.forward(inp)
 
 			# Compute loss
-			self.loss_rot += self.scaleFactor * self.loss_fn(rot_pred, rot_gt)
-			self.loss_trans += self.loss_fn(trans_pred, trans_gt)
-			self.loss += sum([self.scaleFactor * self.loss_fn(rot_pred, rot_gt), \
+			# self.loss_rot += self.args.scf * self.loss_fn(rot_pred, rot_gt)
+			curloss_rot = Variable(self.args.scf * (torch.dist(rot_pred, rot_gt) ** 2), requires_grad = False)
+			curloss_trans = Variable(torch.dist(trans_pred, trans_gt) ** 2, requires_grad = False)
+			self.loss_rot += curloss_rot
+			self.loss_trans += curloss_rot
+
+			self.loss += sum([self.args.scf * self.loss_fn(rot_pred, rot_gt), \
 				self.loss_fn(trans_pred, trans_gt)])
 
 			# Store losses (for further analysis)
-			curloss_rot = (self.scaleFactor * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
-			curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
+			# curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
+			# curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
+			curloss_rot = curloss_rot.detach().cpu().numpy()
+			curloss_trans = curloss_trans.detach().cpu().numpy()
 			rotLosses.append(curloss_rot)
 			transLosses.append(curloss_trans)
 			totalLosses.append(curloss_rot + curloss_trans)
@@ -131,16 +145,47 @@ class Trainer():
 			if elapsedBatches >= self.args.trainBatch or endOfSeq is True:
 
 				elapsedBatches = 0
-				
-				if self.weightRegularizer is not None:
-					# Regularization for network weights
-					l2_reg = None
-					for W in self.model.parameters():
-						if l2_reg is None:
-							l2_reg = W.norm(2)
-						else:
-							l2_reg = l2_reg + W.norm(2)
-					self.loss = sum([self.weightRegularizer * l2_reg, self.loss])
+
+				# # L2-Regularization				
+				# if self.args.gamma > 0.0:
+				# 	# Regularization for network weights
+				# 	l2_reg = None
+				# 	for W in self.model.parameters():
+				# 		if l2_reg is None:
+				# 			l2_reg = W.norm(2)
+				# 		else:
+				# 			l2_reg = l2_reg + W.norm(2)
+				# 	self.loss = sum([self.weightRegularizer * l2_reg, self.loss])
+
+				# # L1-Regularization
+				# if self.args.gamma > 0.0:
+				# 	l1_crit = nn.L1Loss(size_average = False)
+				# 	reg_loss = None
+				# 	for param in self.model.parameters():
+				# 		reg_loss += l1_crit(param)
+				# 	self.loss = sum([self.gamma * reg_loss, self.loss])
+
+				# Regularize only LSTM(s)
+				if self.args.gamma > 0.0:
+					paramsDict = self.model.state_dict()
+					# print(paramsDict.keys())
+					if self.args.numLSTMCells == 1:
+						reg_loss = None
+						reg_loss = paramsDict['lstm1.weight_ih'].norm(2)
+						reg_loss += paramsDict['lstm1.weight_hh'].norm(2)
+						reg_loss += paramsDict['lstm1.bias_ih'].norm(2)
+						reg_loss += paramsDict['lstm1.bias_hh'].norm(2)
+					else:
+						reg_loss = None
+						reg_loss = paramsDict['lstm2.weight_ih'].norm(2)
+						reg_loss += paramsDict['lstm2.weight_hh'].norm(2)
+						reg_loss += paramsDict['lstm2.bias_ih'].norm(2)
+						reg_loss += paramsDict['lstm2.bias_hh'].norm(2)
+						reg_loss += paramsDict['lstm2.weight_ih'].norm(2)
+						reg_loss += paramsDict['lstm2.weight_hh'].norm(2)
+						reg_loss += paramsDict['lstm2.bias_ih'].norm(2)
+						reg_loss += paramsDict['lstm2.bias_hh'].norm(2)
+					self.loss = sum([self.gamma * reg_loss, self.loss])
 
 				# Print stats
 				tqdm.write('Rot Loss: ' + str(np.mean(rotLoss_seq)) + ' Trans Loss: ' + \
@@ -152,6 +197,16 @@ class Trainer():
 
 				# Compute gradients
 				self.loss.backward()
+
+				# Monitor gradients
+				l = 0
+				# for p in self.model.parameters():
+				# 	if l in [j for j in range(18,26)] + [j for j in range(30,34)]:
+				# 		print(p.shape, 'GradNorm: ', p.grad.norm())
+				# 	l += 1
+				paramList = list(filter(lambda p : p.grad is not None, [param for param in self.model.parameters()]))
+				totalNorm = sum([p.grad.data.norm() for p in paramList])
+				tqdm.write('gradNorm: ' + str(totalNorm.item()))
 
 				# Perform gradient clipping, if enabled
 				if self.args.gradClip is not None:
@@ -200,7 +255,19 @@ class Trainer():
 		else:
 			numValIters = len(self.val_set)
 
-		for i in trange(numValIters):
+		# Choose a generator (for iterating over the dataset, based on whether or not the 
+		# sbatch flag is set to True). If sbatch is True, we're probably running on a cluster
+		# and do not want an interactive output. So, could suppress tqdm and print statements
+		if self.args.sbatch is True:
+			gen = range(numValIters)
+		else:
+			gen = trange(numValIters)
+
+		for i in gen:
+
+			if self.args.profileGPUUsage is True:
+				gpu_memory_map = get_gpu_memory_map()
+				tqdm.write('GPU usage: ' + str(gpu_memory_map[0]), file = sys.stdout)
 
 			# Get the next frame
 			inp, rot_gt, trans_gt, seq, frame1, frame2, endOfSeq = self.val_set[i]
@@ -218,14 +285,8 @@ class Trainer():
 					trans_pred.data.cpu().numpy()), axis = 1)
 				traj_pred = np.concatenate((traj_pred, cur_pred), axis = 0)
 
-			# Compute loss
-			self.loss_rot += self.scaleFactor * self.loss_fn(rot_pred, rot_gt)
-			self.loss_trans += self.loss_fn(trans_pred, trans_gt)
-			self.loss += sum([self.scaleFactor * self.loss_fn(rot_pred, rot_gt), \
-				self.loss_fn(trans_pred, trans_gt)])
-
 			# Store losses (for further analysis)
-			curloss_rot = (self.scaleFactor * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
+			curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
 			curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
 			rotLosses.append(curloss_rot)
 			transLosses.append(curloss_trans)
@@ -233,6 +294,9 @@ class Trainer():
 			rotLoss_seq.append(curloss_rot)
 			transLoss_seq.append(curloss_trans)
 			totalLoss_seq.append(curloss_rot + curloss_trans)
+
+			# Detach hidden states and outputs of LSTM
+			self.model.detach_LSTM_hidden()
 
 			if endOfSeq is True:
 
@@ -252,17 +316,12 @@ class Trainer():
 				# Reset variable, to store new trajectory later on
 				traj_pred = None
 				
-				# # Detach LSTM hidden states
-				# self.model.detach_LSTM_hidden()
+				# Detach LSTM hidden states
+				self.model.detach_LSTM_hidden()
 
 				# Reset LSTM hidden states
 				self.model.reset_LSTM_hidden()
-				self.model.detach_LSTM_hidden()
 
-				# Reset loss variables
-				self.loss_rot = torch.zeros(1, dtype = torch.float32).cuda()
-				self.loss_trans = torch.zeros(1, dtype = torch.float32).cuda()
-				self.loss = torch.zeros(1, dtype = torch.float32).cuda()
 
 		# Return loss logs for further analysis
 		return rotLosses, transLosses, totalLosses

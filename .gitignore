@@ -10,3 +10,4 @@ runs/*
 matlab/*
 *.png
 __pycache__/*
+mprof*
