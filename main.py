@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -150,18 +151,18 @@ for epoch in range(cmd.nepochs):
 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 
 	# Create datasets for the current epoch
-	train_seq = [0, 1, 2, 8, 9]
-	train_startFrames = [0, 0, 0, 0, 0]
-	train_endFrames = [4540, 1100, 4660, 4070, 1590]
-	val_seq = [3, 4, 5, 6, 7, 10]
-	val_startFrames = [0, 0, 0, 0, 0, 0]
-	val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
-	# train_seq = [1]
-	# train_startFrames = [0]
-	# train_endFrames = [40]
-	# val_seq = [1]
-	# val_startFrames = [0]
-	# val_endFrames = [40]
+	# train_seq = [0, 1, 2, 8, 9]
+	# train_startFrames = [0, 0, 0, 0, 0]
+	# train_endFrames = [4540, 1100, 4660, 4070, 1590]
+	# val_seq = [3, 4, 5, 6, 7, 10]
+	# val_startFrames = [0, 0, 0, 0, 0, 0]
+	# val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
+	train_seq = [1]
+	train_startFrames = [0]
+	train_endFrames = [1100]
+	val_seq = [1]
+	val_startFrames = [0]
+	val_endFrames = [1100]
 	kitti_train = KITTIDataset(cmd.datadir, train_seq, train_startFrames, train_endFrames, \
 		width = cmd.imageWidth, height = cmd.imageHeight)
 	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames, \
@@ -179,7 +180,9 @@ for epoch in range(cmd.nepochs):
 
 	# Training loop
 	print('===> Training: '  + str(epoch+1) + '/' + str(cmd.nepochs))
+	startTime = time.time()
 	rotLosses_train_cur, transLosses_train_cur, totalLosses_train_cur = trainer.train()
+	print('Train time: ', time.time() - startTime)
 
 	rotLosses_train += rotLosses_train_cur
 	transLosses_train += transLosses_train_cur
@@ -200,7 +203,9 @@ for epoch in range(cmd.nepochs):
 
 	# Validation loop
 	print('===> Validation: '  + str(epoch+1) + '/' + str(cmd.nepochs))
+	startTime = time.time()
 	rotLosses_val_cur, transLosses_val_cur, totalLosses_val_cur = trainer.validate()
+	print('Val time: ', time.time() - startTime)
 
 	rotLosses_val += rotLosses_val_cur
 	transLosses_val += transLosses_val_cur
