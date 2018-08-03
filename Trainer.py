@@ -205,7 +205,7 @@ class Trainer():
 				# 		print(p.shape, 'GradNorm: ', p.grad.norm())
 				# 	l += 1
 				paramList = list(filter(lambda p : p.grad is not None, [param for param in self.model.parameters()]))
-				totalNorm = sum([p.grad.data.norm() for p in paramList])
+				totalNorm = sum([(p.grad.data.norm(2.) ** 2.) for p in paramList]) ** (1. / 2)
 				tqdm.write('gradNorm: ' + str(totalNorm.item()))
 
 				# Perform gradient clipping, if enabled
