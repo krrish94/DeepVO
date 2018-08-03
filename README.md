@@ -35,3 +35,12 @@ pip install tensorboardX
 ```
 pip install git+https://github.com/lanpa/tensorboard-pytorch
 ```
+
+## Running code
+
+To run the code, from the base directory of the repository, run something like this:
+
+```
+python -B main.py -datadir ~/scratch/KITTIOdometry/dataset/ -cachedir ../../scratch/DeepVOCache -nepochs 2 -tensorboardX True -lrScheduler cosine -expID tmp -scf 2 -lr 1e-3 -beta1 0.7 -momentum 0.009 -optMethod sgd -dropout 0.5 -modelType flownet -loadModel cache/flownets_EPE1.951.pth.tar -trainBatch 40 -sbatch True -snapshot 1 -snapshotStrategy none -gradClip 20. -imageWidth 640 -imageHeight 192
+```
+For a more detailed explanation of parameters, refer to `args.py`.

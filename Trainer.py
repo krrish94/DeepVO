@@ -185,7 +185,7 @@ class Trainer():
 						reg_loss += paramsDict['lstm2.weight_hh'].norm(2)
 						reg_loss += paramsDict['lstm2.bias_ih'].norm(2)
 						reg_loss += paramsDict['lstm2.bias_hh'].norm(2)
-					self.loss = sum([self.gamma * reg_loss, self.loss])
+					self.loss = sum([self.args.gamma * reg_loss, self.loss])
 
 				# Print stats
 				tqdm.write('Rot Loss: ' + str(np.mean(rotLoss_seq)) + ' Trans Loss: ' + \
