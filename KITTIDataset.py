@@ -35,6 +35,8 @@ class KITTIDataset(Dataset):
 		# self.channelwiseStdDev = [79.35914872, 80.69872125, 82.34685558]
 
 		self.channelwiseMean = [0.0, 0.0, 0.0]
+		# Got the following values from Clement Pinard, whose PyTorch FlowNet we're using
+		self.channelwiseMean = [0.411,0.432,0.45]
 		self.channelwiseStdDev = [1.0, 1.0, 1.0]
 
 		# Dimensions to be fed in the input

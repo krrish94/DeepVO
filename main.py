@@ -146,25 +146,54 @@ transLosses_val = []
 totalLosses_val = []
 bestValLoss = np.inf
 
+
+# Create datasets for the current epoch
+train_seq = [0, 1, 2, 8, 9]
+train_startFrames = [0, 0, 0, 0, 0]
+train_endFrames = [4540, 1100, 4660, 4070, 1590]
+val_seq = [3, 4, 5, 6, 7, 10]
+val_startFrames = [0, 0, 0, 0, 0, 0]
+val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
+# train_seq = [0]
+# train_startFrames = [0]
+# train_endFrames = [4540]
+# val_seq = [0]
+# val_startFrames = [0]
+# val_endFrames = [4540]
+
+
 for epoch in range(cmd.nepochs):
 
 	print('================> Starting epoch: '  + str(epoch+1) + '/' + str(cmd.nepochs))
 
-	# Create datasets for the current epoch
-	# train_seq = [0, 1, 2, 8, 9]
-	# train_startFrames = [0, 0, 0, 0, 0]
-	# train_endFrames = [4540, 1100, 4660, 4070, 1590]
-	# val_seq = [3, 4, 5, 6, 7, 10]
-	# val_startFrames = [0, 0, 0, 0, 0, 0]
-	# val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
-	train_seq = [1]
-	train_startFrames = [0]
-	train_endFrames = [1100]
-	val_seq = [1]
-	val_startFrames = [0]
-	val_endFrames = [1100]
-	kitti_train = KITTIDataset(cmd.datadir, train_seq, train_startFrames, train_endFrames, \
-		width = cmd.imageWidth, height = cmd.imageHeight)
+	train_seq_cur_epoch = []
+	train_startFrames_cur_epoch = []
+	train_endFrames_cur_epoch = []
+	# Take each sequence and split it into chunks
+	for s in range(len(train_seq)):
+		MAX_NUM_CHUNKS = 100
+		num_chunks = 0
+		if (train_endFrames[s] - train_startFrames[s]) // cmd.trainBatch != 0:
+			num_chunks = np.random.randint(0, min((MAX_NUM_CHUNKS, (train_endFrames[s] - train_startFrames[s]) // cmd.trainBatch)))
+		# We don't need no chunks. We need at least one
+		if num_chunks == 0:
+			num_chunks = 1
+		cur_seq = [idx for idx in range(train_startFrames[s], train_endFrames[s], (train_endFrames[s] - train_startFrames[s]) // num_chunks)]
+		for j in range(len(cur_seq)-1):
+			train_seq_cur_epoch.append(train_seq[s])
+			train_startFrames_cur_epoch.append(cur_seq[j])
+			train_endFrames_cur_epoch.append(cur_seq[j+1]-1)
+		if len(cur_seq) == 1: # Corner case
+			train_seq_cur_epoch.append(train_seq[s])
+			train_startFrames_cur_epoch.append(train_startFrames[s])
+			train_endFrames_cur_epoch.append(train_endFrames[s])
+	permutation = np.random.permutation(len(train_seq_cur_epoch))
+	train_seq_cur_epoch = [train_seq_cur_epoch[p] for p in permutation]
+	train_startFrames_cur_epoch = [train_startFrames_cur_epoch[p] for p in permutation]
+	train_endFrames_cur_epoch = [train_endFrames_cur_epoch[p] for p in permutation]
+
+	kitti_train = KITTIDataset(cmd.datadir, train_seq_cur_epoch, train_startFrames_cur_epoch, \
+		train_endFrames_cur_epoch, width = cmd.imageWidth, height = cmd.imageHeight)
 	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames, \
 		width = cmd.imageWidth, height = cmd.imageHeight)
 
