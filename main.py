@@ -24,6 +24,7 @@ from tqdm import tqdm, trange
 # Other project files with definitions
 import args
 from KITTIDataset import KITTIDataset
+from losses import MahalanobisLoss
 from Model import DeepVO
 from plotTrajectories import plotSequence
 from Trainer import Trainer
@@ -117,7 +118,10 @@ print('Loaded! Good to launch!')
 ### Criterion, optimizer, and scheduler ###
 ########################################################################
 
-criterion = nn.MSELoss(reduction = 'sum')
+if cmd.outputParameterization == 'mahalanobis':
+	criterion = MahalanobisLoss
+else:
+	criterion = nn.MSELoss(reduction = 'sum')
 
 if cmd.optMethod == 'adam':
 	optimizer = optim.Adam(deepVO.parameters(), lr = cmd.lr, betas = (cmd.beta1, cmd.beta2), weight_decay = cmd.weightDecay, amsgrad = False)
@@ -148,18 +152,18 @@ bestValLoss = np.inf
 
 
 # Create datasets for the current epoch
-train_seq = [0, 1, 2, 8, 9]
-train_startFrames = [0, 0, 0, 0, 0]
-train_endFrames = [4540, 1100, 4660, 4070, 1590]
-val_seq = [3, 4, 5, 6, 7, 10]
-val_startFrames = [0, 0, 0, 0, 0, 0]
-val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
-# train_seq = [0]
-# train_startFrames = [0]
-# train_endFrames = [4540]
-# val_seq = [0]
-# val_startFrames = [0]
-# val_endFrames = [4540]
+# train_seq = [0, 1, 2, 8, 9]
+# train_startFrames = [0, 0, 0, 0, 0]
+# train_endFrames = [4540, 1100, 4660, 4070, 1590]
+# val_seq = [3, 4, 5, 6, 7, 10]
+# val_startFrames = [0, 0, 0, 0, 0, 0]
+# val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
+train_seq = [0]
+train_startFrames = [0]
+train_endFrames = [4540]
+val_seq = [0]
+val_startFrames = [0]
+val_endFrames = [4540]
 
 
 for epoch in range(cmd.nepochs):
@@ -193,9 +197,10 @@ for epoch in range(cmd.nepochs):
 	train_endFrames_cur_epoch = [train_endFrames_cur_epoch[p] for p in permutation]
 
 	kitti_train = KITTIDataset(cmd.datadir, train_seq_cur_epoch, train_startFrames_cur_epoch, \
-		train_endFrames_cur_epoch, width = cmd.imageWidth, height = cmd.imageHeight)
+		train_endFrames_cur_epoch, width = cmd.imageWidth, height = cmd.imageHeight, \
+		parameterization = cmd.outputParameterization)
 	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames, \
-		width = cmd.imageWidth, height = cmd.imageHeight)
+		width = cmd.imageWidth, height = cmd.imageHeight, parameterization = cmd.outputParameterization)
 
 	# dataloader_train = DataLoader(kitti_train, batch_size = 1, shuffle = False, \
 	# 	num_workers = cmd.numWorkers)
@@ -226,6 +231,10 @@ for epoch in range(cmd.nepochs):
 		if epoch % cmd.snapshot == 0 or epoch == cmd.nepochs - 1:
 			print('Saving model after epoch', epoch, '...')
 			torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'model' + str(epoch).zfill(3) + '.pt'))
+	elif cmd.snapshotStrategy == 'recent':
+		# Save the most recent model
+		print('Saving model after epoch', epoch, '...')
+		torch.save(deepVO, os.path.join(cmd.expDir, 'models', 'recent.pt'))
 	elif cmd.snapshotStrategy == 'best' or 'none':
 		# If we only want to save the best model, defer the decision
 		pass

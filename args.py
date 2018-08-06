@@ -30,7 +30,7 @@ parser.add_argument('-imageHeight', help = 'Height of the input image', type = i
 ################ Dataset ######################################
 parser.add_argument('-dataset', help = 'dataset to be used for training the network', default = 'KITTI')
 parser.add_argument('-outputParameterization', help = 'Parameterization of egomotion to be learnt by the \
-	network', type = str.lower, choices = ['default', 'quaternion', 'se3', 'euler'], default = 'default')
+	network', type = str.lower, choices = ['default', 'quaternion', 'se3', 'euler', 'mahalanobis'], default = 'default')
 
 ################### Hyperparameters ###########################
 parser.add_argument('-lr', help = 'Learning rate', type = float, default = 1e-4)
@@ -72,8 +72,9 @@ parser.add_argument('-expID', help = 'experiment ID', default = 'tmp')
 parser.add_argument('-snapshot', help = 'when to take model snapshots', type = int, default = 5)
 parser.add_argument('-snapshotStrategy', help = 'Strategy to save snapshots. Note that this has \
 	precedence over the -snapshot argument. 1. none: no snapshot at all | 2. default: as frequently \
-	as specified in -snapshot | 3. best: keep only the best performing model thus far', \
-	type = str.lower, choices = ['none', 'default', 'best'])
+	as specified in -snapshot | 3. best: keep only the best performing model thus far, \
+	4. recent: keep only the most recent model', type = str.lower, \
+	choices = ['none', 'default', 'best', 'recent'])
 parser.add_argument('-tensorboardX', help = 'Whether or not to use tensorboardX for \
 	visualization', type = bool, default = True)
 

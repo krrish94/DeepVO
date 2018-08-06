@@ -182,11 +182,16 @@ class DeepVO(nn.Module):
 		
 		# self.fc1 = nn.Linear(1024, 128)
 		self.fc2 = nn.Linear(128, 32)
-		if self.parameterization == 'quaternion':
-			self.fc_rot = nn.Linear(32, 4)
+
+		if self.parameterization != 'mahalanobis':
+			if self.parameterization == 'quaternion':
+				self.fc_rot = nn.Linear(32, 4)
+			else:
+				self.fc_rot = nn.Linear(32, 3)
+			self.fc_trans = nn.Linear(32,3)
 		else:
-			self.fc_rot = nn.Linear(32, 3)
-		self.fc_trans = nn.Linear(32,3)
+			# Mahalanobis norm parameterization, where loss is computed as Mahalanobis distance
+			self.fc_out = nn.Linear(32, 6)
 
 
 	def forward(self, x, reset_hidden = False):
@@ -305,6 +310,10 @@ class DeepVO(nn.Module):
 				else:
 					output_fc2 = F.selu(self.fc2(output_fc1))
 
+			if self.parameterization == 'mahalanobis':
+				output_ = self.fc_out(output_fc2)
+				return output_, None
+
 			output_rot = self.fc_rot(output_fc2)
 			output_trans = self.fc_trans(output_fc2)
 
@@ -352,8 +361,11 @@ class DeepVO(nn.Module):
 						bias.data[start:end].fill_(10.)
 
 		# Special weight_init for rotation FCs
-		self.fc_rot.weight.data = self.fc_rot.weight.data / 1000.
-		# self.fc_trans.weight.data = self.fc_trans.weight.data * 100.
+		if self.parameterization == 'mahalanobis':
+			pass
+		else:
+			self.fc_rot.weight.data = self.fc_rot.weight.data / 1000.
+			# self.fc_trans.weight.data = self.fc_trans.weight.data * 100.
 
 
 	# Detach LSTM hidden state (i.e., output) and cellstate variables to free up the

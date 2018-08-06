@@ -37,12 +37,18 @@ class Trainer():
 		self.val_set = val_set
 
 		# Loss function
-		self.loss_fn = nn.MSELoss(reduction = 'sum')
+		if self.args.outputParameterization == 'mahalanobis':
+			self.loss_fn = loss_fn
+		else:
+			self.loss_fn = nn.MSELoss(reduction = 'sum')
 
 		# Variables to hold loss
-		self.loss_rot = Variable(torch.zeros(1, dtype = torch.float32).cuda(), requires_grad = False)
-		self.loss_trans = Variable(torch.zeros(1, dtype = torch.float32).cuda(), requires_grad = False)
-		self.loss = torch.zeros(1, dtype = torch.float32).cuda()
+		if self.args.outputParameterization == 'mahalanobis':
+			self.loss = torch.zeros(1, dtype = torch.float32).cuda()
+		else:
+			self.loss_rot = Variable(torch.zeros(1, dtype = torch.float32).cuda(), requires_grad = False)
+			self.loss_trans = Variable(torch.zeros(1, dtype = torch.float32).cuda(), requires_grad = False)
+			self.loss = torch.zeros(1, dtype = torch.float32).cuda()
 
 		# Optimizer
 		self.optimizer = optimizer
@@ -113,25 +119,35 @@ class Trainer():
 
 			# Compute loss
 			# self.loss_rot += self.args.scf * self.loss_fn(rot_pred, rot_gt)
-			curloss_rot = Variable(self.args.scf * (torch.dist(rot_pred, rot_gt) ** 2), requires_grad = False)
-			curloss_trans = Variable(torch.dist(trans_pred, trans_gt) ** 2, requires_grad = False)
-			self.loss_rot += curloss_rot
-			self.loss_trans += curloss_rot
+			if self.args.outputParameterization == 'mahalanobis':
+				# Compute a mahalanobis norm on the output 6-vector
+				# Note that, although we seem to be computing loss only over rotation variables
+				# rot_pred and rot_gt are now 6-vectors that also include translation variables.
+				self.loss += self.loss_fn(rot_pred, rot_gt, self.train_set.infoMat)
+				tmpLossVar = Variable(torch.mm(rot_pred - rot_gt, torch.mm(self.train_set.infoMat, (rot_pred - rot_gt).t())), requires_grad = False).detach().cpu().numpy()
+				# tmpLossVar = Variable(torch.dist(rot_pred, rot_gt) ** 2, requires_grad = False).detach().cpu().numpy()
+				totalLosses.append(tmpLossVar[0])
+				totalLoss_seq.append(tmpLossVar[0])
+			else:
+				curloss_rot = Variable(self.args.scf * (torch.dist(rot_pred, rot_gt) ** 2), requires_grad = False)
+				curloss_trans = Variable(torch.dist(trans_pred, trans_gt) ** 2, requires_grad = False)
+				self.loss_rot += curloss_rot
+				self.loss_trans += curloss_rot
 
-			self.loss += sum([self.args.scf * self.loss_fn(rot_pred, rot_gt), \
-				self.loss_fn(trans_pred, trans_gt)])
+				self.loss += sum([self.args.scf * self.loss_fn(rot_pred, rot_gt), \
+					self.loss_fn(trans_pred, trans_gt)])
 
-			# Store losses (for further analysis)
-			# curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
-			# curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
-			curloss_rot = curloss_rot.detach().cpu().numpy()
-			curloss_trans = curloss_trans.detach().cpu().numpy()
-			rotLosses.append(curloss_rot)
-			transLosses.append(curloss_trans)
-			totalLosses.append(curloss_rot + curloss_trans)
-			rotLoss_seq.append(curloss_rot)
-			transLoss_seq.append(curloss_trans)
-			totalLoss_seq.append(curloss_rot + curloss_trans)
+				# Store losses (for further analysis)
+				# curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
+				# curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
+				curloss_rot = curloss_rot.detach().cpu().numpy()
+				curloss_trans = curloss_trans.detach().cpu().numpy()
+				rotLosses.append(curloss_rot)
+				transLosses.append(curloss_trans)
+				totalLosses.append(curloss_rot + curloss_trans)
+				rotLoss_seq.append(curloss_rot)
+				transLoss_seq.append(curloss_trans)
+				totalLoss_seq.append(curloss_rot + curloss_trans)
 
 			# Handle debug mode here. Force execute the below if statement in the
 			# last debug iteration
@@ -188,9 +204,11 @@ class Trainer():
 					self.loss = sum([self.args.gamma * reg_loss, self.loss])
 
 				# Print stats
-				tqdm.write('Rot Loss: ' + str(np.mean(rotLoss_seq)) + ' Trans Loss: ' + \
-					str(np.mean(transLoss_seq)), file = sys.stdout)
-				tqdm.write('Total Loss: ' + str(np.mean(totalLoss_seq)), file = sys.stdout)
+				if self.args.outputParameterization != 'mahalanobis':
+					tqdm.write('Rot Loss: ' + str(np.mean(rotLoss_seq)) + ' Trans Loss: ' + \
+						str(np.mean(transLoss_seq)), file = sys.stdout)
+				else:
+					tqdm.write('Total Loss: ' + str(np.mean(totalLoss_seq)), file = sys.stdout)
 				rotLoss_seq = []
 				transLoss_seq = []
 				totalLoss_seq = []
@@ -229,7 +247,10 @@ class Trainer():
 				self.model.zero_grad()
 
 		# Return loss logs for further analysis
-		return rotLosses, transLosses, totalLosses
+		if self.args.outputParameterization == 'mahalanobis':
+			return [], [], totalLosses
+		else:
+			return rotLosses, transLosses, totalLosses
 
 
 	# Run one epoch of validation
@@ -277,23 +298,36 @@ class Trainer():
 			# Feed it through the model
 			rot_pred, trans_pred = self.model.forward(inp)
 
-			if traj_pred is None:
-				traj_pred = np.concatenate((metadata, rot_pred.data.cpu().numpy(), \
-					trans_pred.data.cpu().numpy()), axis = 1)
+			if self.args.outputParameterization == 'mahalanobis':
+				if traj_pred is None:
+					traj_pred = np.concatenate((metadata, rot_pred.data.cpu().numpy()), axis = 1)
+				else:
+					cur_pred = np.concatenate((metadata, rot_pred.data.cpu().numpy()), axis = 1)
+					traj_pred = np.concatenate((traj_pred, cur_pred), axis = 0)
 			else:
-				cur_pred = np.concatenate((metadata, rot_pred.data.cpu().numpy(), \
-					trans_pred.data.cpu().numpy()), axis = 1)
-				traj_pred = np.concatenate((traj_pred, cur_pred), axis = 0)
+				if traj_pred is None:
+					traj_pred = np.concatenate((metadata, rot_pred.data.cpu().numpy(), \
+						trans_pred.data.cpu().numpy()), axis = 1)
+				else:
+					cur_pred = np.concatenate((metadata, rot_pred.data.cpu().numpy(), \
+						trans_pred.data.cpu().numpy()), axis = 1)
+					traj_pred = np.concatenate((traj_pred, cur_pred), axis = 0)
 
 			# Store losses (for further analysis)
-			curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
-			curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
-			rotLosses.append(curloss_rot)
-			transLosses.append(curloss_trans)
-			totalLosses.append(curloss_rot + curloss_trans)
-			rotLoss_seq.append(curloss_rot)
-			transLoss_seq.append(curloss_trans)
-			totalLoss_seq.append(curloss_rot + curloss_trans)
+			if self.args.outputParameterization == 'mahalanobis':
+				# rot_pred and rot_gt are 6-vectors here, and they include translations too
+				tmpLossVar = self.loss_fn(rot_pred, rot_gt, self.train_set.infoMat).detach().cpu().numpy()
+				totalLosses.append(tmpLossVar[0])
+				totalLoss_seq.append(tmpLossVar[0])
+			else:
+				curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
+				curloss_trans = (self.loss_fn(trans_pred, trans_gt)).detach().cpu().numpy()
+				rotLosses.append(curloss_rot)
+				transLosses.append(curloss_trans)
+				totalLosses.append(curloss_rot + curloss_trans)
+				rotLoss_seq.append(curloss_rot)
+				transLoss_seq.append(curloss_trans)
+				totalLoss_seq.append(curloss_rot + curloss_trans)
 
 			# Detach hidden states and outputs of LSTM
 			self.model.detach_LSTM_hidden()
@@ -301,9 +335,11 @@ class Trainer():
 			if endOfSeq is True:
 
 				# Print stats
-				tqdm.write('Rot Loss: ' + str(np.mean(rotLoss_seq)) + ' Trans Loss: ' + \
-					str(np.mean(transLoss_seq)), file = sys.stdout)
-				tqdm.write('Total Loss: ' + str(np.mean(totalLoss_seq)), file = sys.stdout)
+				if self.args.outputParameterization != 'mahalanobis':
+					tqdm.write('Rot Loss: ' + str(np.mean(rotLoss_seq)) + ' Trans Loss: ' + \
+						str(np.mean(transLoss_seq)), file = sys.stdout)
+				else:
+					tqdm.write('Total Loss: ' + str(np.mean(totalLoss_seq)), file = sys.stdout)
 				rotLoss_seq = []
 				transLoss_seq = []
 				totalLoss_seq = []
@@ -324,4 +360,7 @@ class Trainer():
 
 
 		# Return loss logs for further analysis
-		return rotLosses, transLosses, totalLosses
+		if self.args.outputParameterization == 'mahalanobis':
+			return [], [], totalLosses
+		else:
+			return rotLosses, transLosses, totalLosses
