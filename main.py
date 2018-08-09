@@ -123,6 +123,17 @@ if cmd.outputParameterization == 'mahalanobis':
 else:
 	criterion = nn.MSELoss(reduction = 'sum')
 
+if cmd.freezeCNN is True:
+	n = 0
+	for p in deepVO.parameters():
+		if p.requires_grad is True:
+			# The first 18 trainable parameters correspond to the CNN (FlowNetS)
+			if n <= 17:
+				p.requires_grad = False
+				n += 1
+	# print(len(list(filter(lambda p: p.requires_grad, deepVO.parameters()))))
+	# sys.exit(1)
+
 if cmd.optMethod == 'adam':
 	optimizer = optim.Adam(deepVO.parameters(), lr = cmd.lr, betas = (cmd.beta1, cmd.beta2), weight_decay = cmd.weightDecay, amsgrad = False)
 elif cmd.optMethod == 'sgd':

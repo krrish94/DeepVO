@@ -11,13 +11,5 @@ import torch
 # Output: a scalar quantity denoting the squared Mahalanobis distance
 def MahalanobisLoss(pred, gt, infoMat = None):
 	z = pred - gt
-	if infoMat is not None:
-		pass
-		# print(torch.mm(z, torch.mm(infoMat, z.t())))
-	else:
-		pass
-		# print(torch.mm(z, z.t()))
-	# print(torch.mm(z, torch.mm(infoMat, z.t())))
 	inv_sigma_z = torch.mm(infoMat, z.t())
 	return torch.mm(z, inv_sigma_z)[0]
-	# return torch.mm(z, z.t())

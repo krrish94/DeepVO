@@ -132,7 +132,11 @@ class Trainer():
 				curloss_rot = Variable(self.args.scf * (torch.dist(rot_pred, rot_gt) ** 2), requires_grad = False)
 				curloss_trans = Variable(torch.dist(trans_pred, trans_gt) ** 2, requires_grad = False)
 				self.loss_rot += curloss_rot
-				self.loss_trans += curloss_rot
+				self.loss_trans += curloss_trans
+
+				if np.random.normal() < -0.9:
+					tqdm.write('rot: ' + str(rot_pred.data) + ' ' + str(rot_gt.data), file = sys.stdout)
+					tqdm.write('trans: ' + str(trans_pred.data) + ' ' + str(trans_gt.data), file = sys.stdout)
 
 				self.loss += sum([self.args.scf * self.loss_fn(rot_pred, rot_gt), \
 					self.loss_fn(trans_pred, trans_gt)])

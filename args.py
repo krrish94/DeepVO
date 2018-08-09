@@ -26,6 +26,8 @@ parser.add_argument('-numLSTMCells', help = 'Number of LSTM cells to stack toget
 	default = 2)
 parser.add_argument('-imageWidth', help = 'Width of the input image', type = int, default = 1280)
 parser.add_argument('-imageHeight', help = 'Height of the input image', type = int, default = 384)
+parser.add_argument('-freezeCNN', help = 'Whether or not to freeze weights of the CNN', \
+	type = bool, default = True)
 
 ################ Dataset ######################################
 parser.add_argument('-dataset', help = 'dataset to be used for training the network', default = 'KITTI')
