@@ -26,7 +26,7 @@ import args
 from KITTIDataset import KITTIDataset
 from losses import MahalanobisLoss
 from Model import DeepVO
-from plotTrajectories import plotSequence
+from plotTrajectories import plotSequenceRelative, plotSequenceAbsolute
 from Trainer import Trainer
 
 
@@ -171,10 +171,11 @@ bestValLoss = np.inf
 # val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
 train_seq = [0]
 train_startFrames = [0]
-train_endFrames = [4540]
+train_endFrames = [400]
 val_seq = [0]
 val_startFrames = [0]
-val_endFrames = [4540]
+val_endFrames = [400]
+# val_endFrames = [400]
 
 
 for epoch in range(cmd.nepochs):
@@ -209,9 +210,10 @@ for epoch in range(cmd.nepochs):
 
 	kitti_train = KITTIDataset(cmd.datadir, train_seq_cur_epoch, train_startFrames_cur_epoch, \
 		train_endFrames_cur_epoch, width = cmd.imageWidth, height = cmd.imageHeight, \
-		parameterization = cmd.outputParameterization)
+		parameterization = cmd.outputParameterization, outputFrame = cmd.outputFrame)
 	kitti_val = KITTIDataset(cmd.datadir, val_seq, val_startFrames, val_endFrames, \
-		width = cmd.imageWidth, height = cmd.imageHeight, parameterization = cmd.outputParameterization)
+		width = cmd.imageWidth, height = cmd.imageHeight, parameterization = cmd.outputParameterization, \
+		outputFrame = cmd.outputFrame)
 
 	# dataloader_train = DataLoader(kitti_train, batch_size = 1, shuffle = False, \
 	# 	num_workers = cmd.numWorkers)
@@ -303,7 +305,10 @@ for epoch in range(cmd.nepochs):
 		if os.path.exists(trajFile):
 			traj = np.loadtxt(trajFile)
 			traj = traj[:,3:]
-			plotSequence(cmd.expDir, s, seqLen, traj, cmd.datadir, cmd, epoch)
+			if cmd.outputFrame == 'local':
+				plotSequenceRelative(cmd.expDir, s, seqLen, traj, cmd.datadir, cmd, epoch)
+			elif cmd.outputFrame == 'global':
+				plotSequenceAbsolute(cmd.expDir, s, seqLen, traj, cmd.datadir, cmd, epoch)
 		i += 1
 
 

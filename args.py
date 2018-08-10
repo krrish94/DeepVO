@@ -33,6 +33,8 @@ parser.add_argument('-freezeCNN', help = 'Whether or not to freeze weights of th
 parser.add_argument('-dataset', help = 'dataset to be used for training the network', default = 'KITTI')
 parser.add_argument('-outputParameterization', help = 'Parameterization of egomotion to be learnt by the \
 	network', type = str.lower, choices = ['default', 'quaternion', 'se3', 'euler', 'mahalanobis'], default = 'default')
+parser.add_argument('-outputFrame', help = 'Whether the output is to be in local or in global coordinates', \
+	type = str.lower, choices = ['local', 'global'], default = 'local')
 
 ################### Hyperparameters ###########################
 parser.add_argument('-lr', help = 'Learning rate', type = float, default = 1e-4)

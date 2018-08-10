@@ -1,4 +1,4 @@
-from lieFunctions import axisAngle_to_rotMat
+from lieFunctions import axisAngle_to_rotMat, quat_to_rotMat, euler_to_rotMat
 import os
 import matplotlib
 matplotlib.use('Agg')
@@ -26,7 +26,7 @@ def getGroundTruthTrajectory(seq, seqLength, dataDir):
 	return cameraTraj;
 
 
-def plotSequence(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch):
+def plotSequenceRelative(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch):
 
 	T = np.eye(4);
 	estimatedCameraTraj = np.empty([seqLength,3])
@@ -40,8 +40,16 @@ def plotSequence(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch):
 		# Output is pose of frame i+1 with respect to frame i
 		relativePose = trajectory[frame,:]
 		
-		R = axisAngle_to_rotMat(np.transpose(relativePose[:3]))
-		t = np.reshape(relativePose[3:],(3,1))
+		if cmd.outputParameterization == 'default':
+			R = axisAngle_to_rotMat(np.transpose(relativePose[:3]))
+			t = np.reshape(relativePose[3:],(3,1))
+		elif cmd.outputParameterization == 'quaternion':
+			R = quat_to_rotMat(relativePose[:4])
+			t = np.reshape(relativePose[4:],(3,1))
+		elif cmd.outputParameterization == 'euler':
+			R = euler_to_rotMat(relativePose[:3])
+			t = np.reshape(relativePose[3,:],(3,1))
+
 		T_r = np.concatenate( ( np.concatenate([R,t],axis=1) , [[0.0,0.0,0.0,1.0]] ) , axis = 0 )
 		
 		# With respect to the first frame
@@ -81,7 +89,49 @@ def plotSequence(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch):
 	# fig_.savefig(path + "/est_" + str(currNumPlots/2 + 1))
 
 
+def plotSequenceAbsolute(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch):
 
+	T = np.eye(4);
+	estimatedCameraTraj = np.empty([seqLength,3])
+
+	# Extract the camera centres from all the frames
+
+	for frame in range(seqLength-1):
+
+		# Output is pose of frame i+1 with respect to frame i
+		absolutePose = trajectory[frame,:]
+		
+		if cmd.outputParameterization == 'default':
+			R = axisAngle_to_rotMat(np.transpose(absolutePose[:3]))
+			t = np.reshape(absolutePose[3:],(3,1))
+		elif cmd.outputParameterization == 'quaternion':
+			R = quat_to_rotMat(absolutePose[:4])
+			t = np.reshape(absolutePose[4:],(3,1))
+		elif cmd.outputParameterization == 'euler':
+			R = euler_to_rotMat(absolutePose[:3])
+			t = np.reshape(absolutePose[3,:],(3,1))
+
+		T_r = np.concatenate( ( np.concatenate([R,t],axis=1) , [[0.0,0.0,0.0,1.0]] ) , axis = 0 )
+		
+		# Get the origin of the frame (i+1), ie the camera center
+		estimatedCameraTraj[frame+1] = np.transpose(T_r[0:3,3])
+
+	# Get the ground truth camera trajectory
+	gtCameraTraj = getGroundTruthTrajectory(seq, seqLength, dataDir);
+
+	# Plot the estimated and groundtruth trajectories
+	x_gt = gtCameraTraj[:,0]
+	z_gt = gtCameraTraj[:,2]
+
+	x_est = estimatedCameraTraj[:,0]
+	z_est = estimatedCameraTraj[:,2]
+
+	# assert (currNumPlots%2==0)
+	fig,ax = plt.subplots(1)
+	ax.plot(x_gt,z_gt, 'c', label = "ground truth")
+	ax.plot(x_est,z_est, 'm', label= "estimated")
+	ax.legend()
+	fig.savefig(os.path.join(expDir, 'plots', 'traj', str(seq).zfill(2), 'traj_' + str(epoch).zfill(3)))
 
 
 

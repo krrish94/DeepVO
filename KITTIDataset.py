@@ -12,7 +12,7 @@ class KITTIDataset(Dataset):
 
 	# Constructor
 	def __init__(self, KITTIBaseDir, sequences = None, startFrames = None, endFrames = None, \
-		parameterization = 'default', width = 1280, height = 384):
+		parameterization = 'default', width = 1280, height = 384, outputFrame = 'local'):
 
 		# Path to base directory of the KITTI odometry dataset
 		# The base directory contains two directories: 'poses' and 'sequences'
@@ -54,6 +54,7 @@ class KITTIDataset(Dataset):
 
 		# Parameterization to be used to represent the transformation
 		self.parameterization = parameterization
+		self.outputFrame = outputFrame
 
 		if self.parameterization == 'mahalanobis':
 			# Covariance matrix for pose estimates (used in mahalanobis distance parameterization)
@@ -145,11 +146,19 @@ class KITTIDataset(Dataset):
 		# Load pose ground-truth
 		poses = np.loadtxt(os.path.join(self.poseDir, str(seqIdx).zfill(2) + '.txt'), \
 			dtype = np.float32)
-		pose1 = np.vstack([np.reshape(poses[frame1].astype(np.float32), (3, 4)), \
+		# If using global transformations, load GT transformation of startFrame wrt world
+		if self.outputFrame == 'global':
+			pose1 = np.vstack([np.reshape(poses[self.startFrames[seqKey]].astype(np.float32), (3, 4)), \
 			[[0., 0., 0., 1.]]])
+		# Else load GT transformation of frame1 wrt world
+		elif self.outputFrame == 'local':
+			pose1 = np.vstack([np.reshape(poses[frame1].astype(np.float32), (3, 4)), \
+				[[0., 0., 0., 1.]]])
+		# Regardless of using local or global transformations, we need to load GT transformation
+		# of frame2 wrt world
 		pose2 = np.vstack([np.reshape(poses[frame2].astype(np.float32), (3, 4)), \
 			[[0., 0., 0., 1.]]])
-		# Compute relative pose from frame1 to frame2
+		# Compute relative pose from frame1/startFrame (local/global) to frame2
 		pose2wrt1 = np.dot(np.linalg.inv(pose1), pose2)
 		R = pose2wrt1[0:3,0:3]
 		t = (torch.from_numpy(pose2wrt1[0:3,3]).view(-1,3)).float().cuda()
