@@ -78,7 +78,7 @@ class KITTIDataset(Dataset):
 			raise ValueError('Sequences must be within the range [00-10]')
 		if len(self.sequences) != len(self.startFrames):
 			raise ValueError('There are not enough startFrames specified as there are sequences.')
-		if len(self.sequences) != len(self.startFrames):
+		if len(self.sequences) != len(self.endFrames):
 			raise ValueError('There are not enough endFrames specified as there are sequences.')
 		# Check that, for each sequence, the corresponding start and end frames are within limits
 		for i in range(len(self.sequences)):

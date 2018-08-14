@@ -47,8 +47,9 @@ def plotSequenceRelative(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch
 			R = quat_to_rotMat(relativePose[:4])
 			t = np.reshape(relativePose[4:],(3,1))
 		elif cmd.outputParameterization == 'euler':
-			R = euler_to_rotMat(relativePose[:3])
-			t = np.reshape(relativePose[3,:],(3,1))
+			R = np.asarray(euler_to_rotMat(x = relativePose[0], y = relativePose[1], \
+				z = relativePose[3], seq = 'xyz'), dtype = np.float32)
+			t = (np.asarray(relativePose[3:], dtype = np.float32)).reshape((3,1))
 
 		T_r = np.concatenate( ( np.concatenate([R,t],axis=1) , [[0.0,0.0,0.0,1.0]] ) , axis = 0 )
 		
@@ -108,8 +109,9 @@ def plotSequenceAbsolute(expDir, seq, seqLength, trajectory, dataDir, cmd, epoch
 			R = quat_to_rotMat(absolutePose[:4])
 			t = np.reshape(absolutePose[4:],(3,1))
 		elif cmd.outputParameterization == 'euler':
-			R = euler_to_rotMat(absolutePose[:3])
-			t = np.reshape(absolutePose[3,:],(3,1))
+			R = np.asarray(euler_to_rotMat(x = absolutePose[0], y = absolutePose[1], \
+				z = absolutePose[3], seq = 'xyz'), dtype = np.float32)
+			t = (np.asarray(absolutePose[3:], dtype = np.float32)).reshape((3,1))
 
 		T_r = np.concatenate( ( np.concatenate([R,t],axis=1) , [[0.0,0.0,0.0,1.0]] ) , axis = 0 )
 		

@@ -140,6 +140,14 @@ class Trainer():
 
 				self.loss += sum([self.args.scf * self.loss_fn(rot_pred, rot_gt), \
 					self.loss_fn(trans_pred, trans_gt)])
+				# self.loss = self.loss_fn(rot_pred, rot_gt)
+
+				# # Compute gradients	# ???
+				# self.loss = sum([self.args.scf * self.loss_fn(rot_pred, rot_gt), \
+				# 	self.loss_fn(trans_pred, trans_gt)])
+				# self.loss.backward()
+				# # self.model.zero_grad()
+				# self.model.detach_LSTM_hidden()
 
 				# Store losses (for further analysis)
 				# curloss_rot = (self.args.scf * self.loss_fn(rot_pred, rot_gt)).detach().cpu().numpy()
@@ -217,7 +225,7 @@ class Trainer():
 				transLoss_seq = []
 				totalLoss_seq = []
 
-				# Compute gradients
+				# Compute gradients	# ???
 				self.loss.backward()
 
 				# Monitor gradients
@@ -240,7 +248,7 @@ class Trainer():
 				# If it's the end of sequence, reset hidden states
 				if endOfSeq is True:
 					self.model.reset_LSTM_hidden()
-				self.model.detach_LSTM_hidden()
+				self.model.detach_LSTM_hidden()	# ???
 
 				# Reset loss variables
 				self.loss_rot = torch.zeros(1, dtype = torch.float32).cuda()

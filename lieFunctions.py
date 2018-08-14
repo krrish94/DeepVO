@@ -268,6 +268,24 @@ def euler_to_rotMat(z = 0, y = 0, x = 0, isRadian = True, seq = 'zyx'):
 		z = ((np.pi)/180.) * z
 		y = ((np.pi)/180.) * y
 		x = ((np.pi)/180.) * x
+	if z < -np.pi:
+		while z < -np.pi:
+			z += 2*np.pi
+	if z > np.pi:
+		while z > np.pi:
+			z -= 2*np.pi
+	if y < -np.pi:
+		while y < -np.pi:
+			y += 2*np.pi
+	if y > np.pi:
+		while y > np.pi:
+			y -= 2*np.pi
+	if x < -np.pi:
+		while x < -np.pi:
+			x += 2*np.pi
+	if x > np.pi:
+		while x > np.pi:
+			x -= 2*np.pi
 	assert z>=(-np.pi) and z < np.pi, 'Inapprorpriate z: %f' % z
 	assert y>=(-np.pi) and y < np.pi, 'Inapprorpriate y: %f' % y
 	assert x>=(-np.pi) and x < np.pi, 'Inapprorpriate x: %f' % x    

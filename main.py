@@ -163,19 +163,18 @@ bestValLoss = np.inf
 
 
 # Create datasets for the current epoch
-# train_seq = [0, 1, 2, 8, 9]
-# train_startFrames = [0, 0, 0, 0, 0]
-# train_endFrames = [4540, 1100, 4660, 4070, 1590]
-# val_seq = [3, 4, 5, 6, 7, 10]
-# val_startFrames = [0, 0, 0, 0, 0, 0]
-# val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
-train_seq = [0]
-train_startFrames = [0]
-train_endFrames = [400]
-val_seq = [0]
-val_startFrames = [0]
-val_endFrames = [400]
-# val_endFrames = [400]
+train_seq = [0, 1, 2, 8, 9]
+train_startFrames = [0, 0, 0, 0, 0]
+train_endFrames = [4540, 1100, 4660, 4070, 1590]
+val_seq = [3, 4, 5, 6, 7, 10]
+val_startFrames = [0, 0, 0, 0, 0, 0]
+val_endFrames = [800, 270, 2760, 1100, 1100, 1200]
+# train_seq = [0]
+# train_startFrames = [40]
+# train_endFrames = [240]
+# val_seq = [0]
+# val_startFrames = [40]
+# val_endFrames = [240]
 
 
 for epoch in range(cmd.nepochs):
@@ -187,7 +186,7 @@ for epoch in range(cmd.nepochs):
 	train_endFrames_cur_epoch = []
 	# Take each sequence and split it into chunks
 	for s in range(len(train_seq)):
-		MAX_NUM_CHUNKS = 100
+		MAX_NUM_CHUNKS = 1
 		num_chunks = 0
 		if (train_endFrames[s] - train_startFrames[s]) // cmd.trainBatch != 0:
 			num_chunks = np.random.randint(0, min((MAX_NUM_CHUNKS, (train_endFrames[s] - train_startFrames[s]) // cmd.trainBatch)))
